@@ -28,6 +28,24 @@
     --radius: 12px;
     --radius-sm: 8px;
   }
+  body.light {
+    --bg: #f4f6f4;
+    --bg2: #ffffff;
+    --bg3: #eef0ee;
+    --bg4: #e4e7e4;
+    --border: rgba(0,0,0,0.07);
+    --border2: rgba(0,0,0,0.13);
+    --text: #1a1f1a;
+    --text2: #5a6358;
+    --text3: #9aa098;
+    --green-dim: rgba(45,122,58,0.1);
+  }
+  .theme-toggle {
+    background: none; border: 1px solid var(--border2); border-radius: 6px;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 15px; transition: all 0.15s; flex-shrink: 0;
+  }
+  .theme-toggle:hover { border-color: var(--green); }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
@@ -101,6 +119,12 @@
   }
   .client-name { font-size: 13px; font-weight: 500; line-height: 1.2; }
   .client-niche { font-size: 11px; color: var(--text3); }
+  .btn-home {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm);
+    border: none; background: var(--bg3); color: var(--text2); font-size: 13px;
+    cursor: pointer; width: 100%; font-family: 'Poppins', sans-serif; transition: all 0.15s; margin-bottom: 4px;
+  }
+  .btn-home:hover { background: var(--bg4); color: var(--text); }
   .btn-new-client {
     display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm);
     border: 1px dashed var(--border2); background: none; color: var(--text2); font-size: 13px;
@@ -321,13 +345,15 @@
     <div class="topbar-sep"></div>
     <div class="topbar-title" id="topTitle">Dashboard</div>
     <div class="topbar-user" id="topUser"></div>
+    <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="Alternar tema">🌙</button>
     <button class="btn-logout" onclick="doLogout()">Sair</button>
   </div>
   <div class="app-body">
     <!-- SIDEBAR -->
     <div class="sidebar">
       <div class="sidebar-section">
-        <div class="sidebar-label">Clientes</div>
+        <button class="btn-home" onclick="renderHome()">🏠 Início</button>
+        <div class="sidebar-label" style="margin-top:1rem">Clientes</div>
         <div id="sidebarList"></div>
         <button class="btn-new-client" onclick="openNewClientModal()">＋ Novo cliente</button>
       </div>
@@ -391,6 +417,18 @@
   </div>
 </div>
 
+<!-- MODAL: CONFIRMAR EXCLUSÃO -->
+<div class="overlay" id="confirmModal" onclick="closeOnOverlay(event,'confirmModal')">
+  <div class="modal" style="max-width:340px">
+    <h3 id="confirmTitle">Confirmar exclusão</h3>
+    <p id="confirmMsg" style="font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.6"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('confirmModal')">Cancelar</button>
+      <button class="btn-save" id="confirmBtn" style="background:#e05e5e">Excluir</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: META/OBJETIVO -->
 <div class="overlay" id="goalModal" onclick="closeOnOverlay(event,'goalModal')">
   <div class="modal">
@@ -426,6 +464,7 @@ async function doLogin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').style.display = 'flex';
   document.getElementById('topUser').textContent = email;
+  if (localStorage.getItem('theme') === 'light') document.getElementById('themeBtn').textContent = '☀️';
   await loadClients();
   renderHome();
 }
@@ -541,6 +580,16 @@ async function saveClient() {
   else renderHome();
 }
 
+function deleteClient() {
+  openConfirm('Excluir cliente', `Tem certeza que deseja excluir "${state.activeClient.name}"? Todos os posts, metas e métricas serão removidos.`, async () => {
+    const id = state.activeClient.id;
+    await sb.from('clients').delete().eq('id', id);
+    toast('Cliente excluído.', 'ok');
+    await loadClients();
+    renderHome();
+  });
+}
+
 // ─── POSTS ───
 async function loadPosts() {
   const { data } = await sb.from('posts').select('*').eq('client_id', state.activeClient.id).order('date');
@@ -572,12 +621,13 @@ async function savePost() {
   renderClientView();
 }
 
-async function deletePost(id) {
-  if (!confirm('Remover este post?')) return;
-  await sb.from('posts').delete().eq('id', id);
-  state.posts = state.posts.filter(p => p.id !== id);
-  toast('Post removido.', 'ok');
-  renderClientView();
+function deletePost(id) {
+  openConfirm('Remover post', 'Tem certeza que deseja remover este post?', async () => {
+    await sb.from('posts').delete().eq('id', id);
+    state.posts = state.posts.filter(p => p.id !== id);
+    toast('Post removido.', 'ok');
+    renderClientView();
+  });
 }
 
 function openPostModal(dateStr) {
@@ -659,6 +709,7 @@ function renderClientView() {
       <div class="client-header-avatar" style="background:${color}22;color:${color}">${c.name.charAt(0)}</div>
       <div><h1>${c.name}</h1><p>${c.niche||''} ${c.instagram ? '· ' + c.instagram : ''}</p></div>
       <button class="btn-edit-client" onclick="openNewClientModal(state.activeClient)">Editar</button>
+      <button class="btn-edit-client" style="color:#e05e5e;border-color:#e05e5e33" onclick="deleteClient()">Excluir</button>
     </div>
     <div class="tabs">
       <button class="tab-btn ${state.activeTab==='calendar'?'active':''}" onclick="switchTab('calendar')">Calendário</button>
@@ -862,6 +913,13 @@ function renderGoalsTab(container) {
 }
 
 // ─── UTILS ───
+function openConfirm(title, msg, onConfirm) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('confirmBtn').onclick = () => { closeModal('confirmModal'); onConfirm(); };
+  openModal('confirmModal');
+}
+
 function showLoading() {
   document.getElementById('mainContent').innerHTML = '<div class="loading"><div class="spinner"></div>Carregando...</div>';
 }
@@ -878,6 +936,19 @@ function toast(msg, type = 'ok') {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
 }
 
+// ─── THEME ───
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('themeBtn').textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+}
+(function() {
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light');
+    // btn not yet in DOM, will be set after login
+  }
+})();
+
 // ─── INIT: check session ───
 (async () => {
   const { data: { session } } = await sb.auth.getSession();
@@ -886,6 +957,7 @@ function toast(msg, type = 'ok') {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appShell').style.display = 'flex';
     document.getElementById('topUser').textContent = session.user.email;
+    if (localStorage.getItem('theme') === 'light') document.getElementById('themeBtn').textContent = '☀️';
     await loadClients();
     renderHome();
   }
