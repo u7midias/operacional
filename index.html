@@ -422,7 +422,17 @@
         <option value="promo">Promoção</option>
       </select>
     </div>
-    <div class="form-row"><label>Pilar de conteúdo</label><input type="text" id="pPillar" placeholder="Ex: Frescor & Qualidade" /></div>
+    <div class="form-row"><label>Pilar de conteúdo</label>
+      <select id="pPillar">
+        <option value="">— Selecione o pilar —</option>
+        <option value="Frescor & Qualidade">Frescor & Qualidade</option>
+        <option value="Praticidade">Praticidade</option>
+        <option value="Comunidade Local">Comunidade Local</option>
+        <option value="Promoções & Ofertas">Promoções & Ofertas</option>
+        <option value="Delivery & Facilidade">Delivery & Facilidade</option>
+        <option value="Dicas de Saúde">Dicas de Saúde</option>
+      </select>
+    </div>
     <div class="form-row"><label>Título / ideia</label><input type="text" id="pTitle" placeholder="Descreva o post" /></div>
     <div class="form-row"><label>Legenda / roteiro</label><textarea id="pCaption" placeholder="Escreva aqui..."></textarea></div>
     <input type="hidden" id="pId" />
@@ -457,6 +467,21 @@
   </div>
 </div>
 
+<!-- MODAL: NOVO/EDITAR PILAR -->
+<div class="overlay" id="pillarModal" onclick="closeOnOverlay(event,'pillarModal')">
+  <div class="modal">
+    <h3 id="pillarModalTitle">Novo pilar</h3>
+    <div class="form-row"><label>Nome do pilar</label><input type="text" id="pillarName" placeholder="Ex: Frescor & Qualidade" /></div>
+    <div class="form-row"><label>Descrição</label><textarea id="pillarDesc" placeholder="Descreva o objetivo deste pilar..."></textarea></div>
+    <div class="form-row"><label>Cor</label><input type="color" id="pillarColor" value="#4caf6e" style="padding:4px;height:36px;cursor:pointer" /></div>
+    <input type="hidden" id="pillarId" />
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('pillarModal')">Cancelar</button>
+      <button class="btn-save" onclick="savePillar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL = 'https://tidmxfcbtnrudwlzmabl.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpZG14ZmNidG5ydWR3bHptYWJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzU5MjYsImV4cCI6MjA5MDY1MTkyNn0.OkO4swp1VFEokhg0CMxVWXx1nYx0x2zFYS0cVtSj_R8';
@@ -466,7 +491,7 @@ const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','A
 const DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const COLORS = ['#4caf6e','#e8834a','#5b9bd5','#d46b8a','#c9a84c','#8b6fd4','#4cb8af','#d45b5b'];
 
-let state = { clients: [], activeClient: null, activeTab: 'calendar', year: new Date().getFullYear(), month: new Date().getMonth(), posts: [], goals: [], metrics: null, filter: 'todos', user: null };
+let state = { clients: [], activeClient: null, activeTab: 'calendar', year: new Date().getFullYear(), month: new Date().getMonth(), posts: [], goals: [], metrics: null, pillars: [], filter: 'todos', user: null };
 
 // ─── LOGO HELPERS ───
 function previewLogo(input) {
@@ -587,7 +612,7 @@ async function selectClient(c) {
   document.getElementById('topTitle').textContent = c.name;
   renderSidebar();
   showLoading();
-  await Promise.all([loadPosts(), loadGoals(), loadMetrics()]);
+  await Promise.all([loadPosts(), loadGoals(), loadMetrics(), loadPillars()]);
   renderClientView();
 }
 
@@ -723,13 +748,22 @@ function deletePost(id) {
   });
 }
 
-function openPostModal(dateStr) {
-  document.getElementById('postModalTitle').textContent = 'Novo post';
-  document.getElementById('pId').value = '';
-  document.getElementById('pDate').value = dateStr || '';
-  document.getElementById('pTitle').value = '';
-  document.getElementById('pCaption').value = '';
-  document.getElementById('pPillar').value = '';
+function openPostModal(dateStr, post) {
+  document.getElementById('postModalTitle').textContent = post ? 'Editar post' : 'Novo post';
+  document.getElementById('pId').value = post?.id || '';
+  document.getElementById('pDate').value = post?.date || dateStr || '';
+  document.getElementById('pPlatform').value = post?.platform || 'instagram';
+  document.getElementById('pType').value = post?.type || 'feed';
+  document.getElementById('pTitle').value = post?.title || '';
+  document.getElementById('pCaption').value = post?.caption || '';
+
+  const pillarSelect = document.getElementById('pPillar');
+  const defaultPillars = ['Frescor & Qualidade','Praticidade','Comunidade Local','Promoções & Ofertas','Delivery & Facilidade','Dicas de Saúde'];
+  const pillarNames = state.pillars.length ? state.pillars.map(p => p.name) : defaultPillars;
+  pillarSelect.innerHTML = '<option value="">— Selecione o pilar —</option>' +
+    pillarNames.map(n => `<option value="${n}"${(post?.pillar===n)?'selected':''}>${n}</option>`).join('');
+  if (!post) pillarSelect.value = '';
+
   openModal('postModal');
 }
 
@@ -821,6 +855,7 @@ function renderClientView() {
       <button class="tab-btn ${state.activeTab==='posts'?'active':''}" onclick="switchTab('posts')">Posts</button>
       <button class="tab-btn ${state.activeTab==='metrics'?'active':''}" onclick="switchTab('metrics')">Métricas</button>
       <button class="tab-btn ${state.activeTab==='goals'?'active':''}" onclick="switchTab('goals')">Objetivos</button>
+      <button class="tab-btn ${state.activeTab==='pillars'?'active':''}" onclick="switchTab('pillars')">Pilares</button>
     </div>
     <div id="tabContent"></div>`;
   renderTab();
@@ -837,6 +872,7 @@ function renderTab() {
   else if (state.activeTab === 'posts') renderPostsTab(tc);
   else if (state.activeTab === 'metrics') renderMetricsTab(tc);
   else if (state.activeTab === 'goals') renderGoalsTab(tc);
+  else if (state.activeTab === 'pillars') renderPillarsTab(tc);
 }
 
 // ─── CALENDAR TAB ───
@@ -892,7 +928,7 @@ async function changeMonth(dir) {
   if (state.month > 11) { state.month = 0; state.year++; }
   if (state.month < 0) { state.month = 11; state.year--; }
   showLoading();
-  await Promise.all([loadPosts(), loadGoals(), loadMetrics()]);
+  await Promise.all([loadPosts(), loadGoals(), loadMetrics(), loadPillars()]);
   renderClientView();
 }
 
@@ -926,6 +962,7 @@ function renderPostsTab(container) {
         <div class="post-title">${p.title}</div>
         ${p.caption ? `<div class="post-caption">${p.caption}</div>` : ''}
         <div class="post-footer">
+          <button class="act-btn" onclick="openPostModal(null, ${JSON.stringify(p).replace(/"/g,'&quot;')})">Editar</button>
           <button class="act-btn del" onclick="deletePost(${p.id})">Remover</button>
         </div>
       </div>`;
@@ -992,6 +1029,118 @@ function renderMetricsTab(container) {
       </div>
       <button class="btn-save-metrics" onclick="saveMetrics()">Salvar métricas</button>
     </div>`;
+}
+
+// ─── PILLARS ───
+async function loadPillars() {
+  const { data } = await sb.from('pillars').select('*').eq('client_id', state.activeClient.id).order('created_at');
+  state.pillars = data || [];
+}
+
+async function savePillar() {
+  const id = document.getElementById('pillarId').value;
+  const name = document.getElementById('pillarName').value.trim();
+  const desc = document.getElementById('pillarDesc').value.trim();
+  const color = document.getElementById('pillarColor').value;
+  if (!name) { toast('Informe o nome do pilar.', 'err'); return; }
+  const data = { client_id: state.activeClient.id, name, description: desc, color };
+  let result;
+  if (id) {
+    result = await sb.from('pillars').update(data).eq('id', id);
+  } else {
+    result = await sb.from('pillars').insert(data);
+  }
+  if (result.error) { toast('Erro: ' + result.error.message, 'err'); return; }
+  closeModal('pillarModal');
+  toast('Pilar salvo!', 'ok');
+  await loadPillars();
+  renderClientView();
+}
+
+async function deletePillar(id) {
+  openConfirm('Excluir pilar', 'Tem certeza? Os posts com este pilar não serão afetados.', async () => {
+    await sb.from('pillars').delete().eq('id', id);
+    state.pillars = state.pillars.filter(p => p.id !== id);
+    toast('Pilar excluído.', 'ok');
+    renderClientView();
+  });
+}
+
+function openPillarModal(pillar) {
+  document.getElementById('pillarModalTitle').textContent = pillar ? 'Editar pilar' : 'Novo pilar';
+  document.getElementById('pillarId').value = pillar?.id || '';
+  document.getElementById('pillarName').value = pillar?.name || '';
+  document.getElementById('pillarDesc').value = pillar?.description || '';
+  document.getElementById('pillarColor').value = pillar?.color || '#4caf6e';
+  openModal('pillarModal');
+}
+
+const PILLAR_EMOJIS = ['🌿','⚡','🏠','🛒','📲','💡','🎯','📸','❤️','🔥'];
+
+function renderPillarsTab(container) {
+  const defaultPillars = [
+    { name:'Frescor & Qualidade', description:'Produtos frescos, direto do produtor, seleção do dia.', color:'#4caf6e' },
+    { name:'Praticidade', description:'Bandejas cortadas, saladas prontas, kits semanais.', color:'#e8834a' },
+    { name:'Comunidade Local', description:'Bastidores, equipe, clientes, história do Cipó.', color:'#5b9bd5' },
+    { name:'Promoções & Ofertas', description:'Quarta Verde, Sábado da Feira, combos delivery.', color:'#d46b8a' },
+    { name:'Delivery & Facilidade', description:'Pedidos pelo WhatsApp, entrega no Cipó.', color:'#8b6fd4' },
+    { name:'Dicas de Saúde', description:'Receitas fáceis, benefícios de alimentos.', color:'#c9a84c' },
+  ];
+
+  container.innerHTML = `
+    <div class="goals-section">
+      <div class="goals-header">
+        <h3>Pilares de conteúdo</h3>
+        <div style="display:flex;gap:8px">
+          ${!state.pillars.length ? `<button class="btn-add-goal" onclick="importDefaultPillars()" style="border-color:var(--green);color:var(--green)">⬇ Importar padrão</button>` : ''}
+          <button class="btn-add-goal" onclick="openPillarModal()">+ Novo pilar</button>
+        </div>
+      </div>
+      <div id="pillarsList"></div>
+    </div>`;
+
+  const list = document.getElementById('pillarsList');
+  const pillars = state.pillars.length ? state.pillars : defaultPillars.map((p,i) => ({...p, id: null, emoji: PILLAR_EMOJIS[i]}));
+
+  if (!pillars.length) {
+    list.innerHTML = '<div class="empty" style="padding:1rem"><p>Nenhum pilar cadastrado.</p></div>';
+    return;
+  }
+
+  pillars.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = `display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);`;
+    row.innerHTML = `
+      <div style="width:36px;height:36px;border-radius:9px;background:${p.color}22;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${PILLAR_EMOJIS[i % PILLAR_EMOJIS.length]}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px">
+          ${p.name}
+          <span style="width:10px;height:10px;border-radius:50%;background:${p.color};display:inline-block;flex-shrink:0"></span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">${p.description||'—'}</div>
+      </div>
+      ${p.id ? `
+      <button class="act-btn" onclick="openPillarModal(${JSON.stringify(p).replace(/"/g,'&quot;')})">Editar</button>
+      <button class="act-btn del" onclick="deletePillar(${p.id})">Excluir</button>
+      ` : `<span style="font-size:11px;color:var(--text3)">padrão</span>`}`;
+    list.appendChild(row);
+  });
+}
+
+async function importDefaultPillars() {
+  const defaults = [
+    { name:'Frescor & Qualidade', description:'Produtos frescos, direto do produtor, seleção do dia.', color:'#4caf6e' },
+    { name:'Praticidade', description:'Bandejas cortadas, saladas prontas, kits semanais.', color:'#e8834a' },
+    { name:'Comunidade Local', description:'Bastidores, equipe, clientes, história do Cipó.', color:'#5b9bd5' },
+    { name:'Promoções & Ofertas', description:'Quarta Verde, Sábado da Feira, combos delivery.', color:'#d46b8a' },
+    { name:'Delivery & Facilidade', description:'Pedidos pelo WhatsApp, entrega no Cipó.', color:'#8b6fd4' },
+    { name:'Dicas de Saúde', description:'Receitas fáceis, benefícios de alimentos.', color:'#c9a84c' },
+  ].map(p => ({ ...p, client_id: state.activeClient.id }));
+  const { error } = await sb.from('pillars').insert(defaults);
+  if (error) { toast('Erro: ' + error.message, 'err'); return; }
+  toast('6 pilares importados!', 'ok');
+  await loadPillars();
+  renderClientView();
 }
 
 // ─── GOALS TAB ───
@@ -1097,6 +1246,15 @@ create table posts (
   created_at timestamptz default now()
 );
 
+create table pillars (
+  id bigserial primary key,
+  client_id bigint references clients(id) on delete cascade,
+  name text not null,
+  description text,
+  color text,
+  created_at timestamptz default now()
+);
+
 create table goals (
   id bigserial primary key,
   client_id bigint references clients(id) on delete cascade,
@@ -1123,11 +1281,13 @@ alter table clients enable row level security;
 alter table posts enable row level security;
 alter table goals enable row level security;
 alter table metrics enable row level security;
+alter table pillars enable row level security;
 
 create policy "auth users" on clients for all using (auth.role() = 'authenticated');
 create policy "auth users" on posts for all using (auth.role() = 'authenticated');
 create policy "auth users" on goals for all using (auth.role() = 'authenticated');
 create policy "auth users" on metrics for all using (auth.role() = 'authenticated');
+create policy "auth users" on pillars for all using (auth.role() = 'authenticated');
 -->
 </body>
 </html>
