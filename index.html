@@ -735,14 +735,24 @@ function openPostModal(dateStr) {
 
 // ─── GOALS ───
 async function loadGoals() {
-  const { data } = await sb.from('goals').select('*').eq('client_id', state.activeClient.id).order('created_at');
+  const { data } = await sb.from('goals').select('*')
+    .eq('client_id', state.activeClient.id)
+    .eq('year', state.year)
+    .eq('month', state.month + 1)
+    .order('created_at');
   state.goals = data || [];
 }
 
 async function saveGoal() {
   const text = document.getElementById('gText').value.trim();
   if (!text) return;
-  const { error } = await sb.from('goals').insert({ client_id: state.activeClient.id, text, done: false });
+  const { error } = await sb.from('goals').insert({
+    client_id: state.activeClient.id,
+    text,
+    done: false,
+    year: state.year,
+    month: state.month + 1,
+  });
   if (error) { toast('Erro: ' + error.message, 'err'); return; }
   closeModal('goalModal');
   toast('Objetivo adicionado!', 'ok');
@@ -882,7 +892,7 @@ async function changeMonth(dir) {
   if (state.month > 11) { state.month = 0; state.year++; }
   if (state.month < 0) { state.month = 11; state.year--; }
   showLoading();
-  await Promise.all([loadPosts(), loadMetrics()]);
+  await Promise.all([loadPosts(), loadGoals(), loadMetrics()]);
   renderClientView();
 }
 
@@ -989,7 +999,7 @@ function renderGoalsTab(container) {
   container.innerHTML = `
     <div class="goals-section">
       <div class="goals-header">
-        <h3>Objetivos do mês</h3>
+        <h3>Objetivos — ${MONTHS[state.month]} ${state.year}</h3>
         <button class="btn-add-goal" onclick="openModal('goalModal')">+ Adicionar</button>
       </div>
       <div id="goalsList"></div>
@@ -1092,6 +1102,8 @@ create table goals (
   client_id bigint references clients(id) on delete cascade,
   text text not null,
   done boolean default false,
+  year int,
+  month int,
   created_at timestamptz default now()
 );
 
