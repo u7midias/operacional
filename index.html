@@ -276,8 +276,10 @@
   .overlay.open { display: flex; }
   .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; padding: 1.5rem; width: 100%; max-width: 420px; }
   .modal h3 { font-family: 'Poppins', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 1.25rem; }
-  .form-row { margin-bottom: 12px; }
-  .form-row label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+  .form-row { margin-bottom: 10px; }
+  .form-row label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .modal h3 { font-family: 'Poppins', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 1rem; }
+  .modal input, .modal select, .modal textarea { font-size: 12px; padding: 7px 10px; }
   .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.25rem; }
   .btn-cancel { padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: none; color: var(--text2); font-size: 13px; cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.15s; }
   .btn-cancel:hover { color: var(--text); }
@@ -377,7 +379,21 @@
     <div class="form-row"><label>@ Instagram</label><input type="text" id="cInsta" placeholder="@perfil" /></div>
     <div class="form-row"><label>@ TikTok</label><input type="text" id="cTiktok" placeholder="@perfil" /></div>
     <div class="form-row"><label>Cor (hex)</label><input type="color" id="cColor" value="#4caf6e" style="padding:4px;height:36px;cursor:pointer" /></div>
+    <div class="form-row">
+      <label>Logo do cliente</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div id="logoPreview" style="width:44px;height:44px;border-radius:10px;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);overflow:hidden;flex-shrink:0">logo</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;color:var(--text2);transition:border-color 0.2s" onmouseenter="this.style.borderColor='var(--green)'" onmouseleave="this.style.borderColor='var(--border2)'">
+            📁 Upload de imagem
+            <input type="file" id="cLogoFile" accept="image/*" style="display:none" onchange="previewLogo(this)" />
+          </label>
+          <input type="text" id="cLogoUrl" placeholder="ou cole uma URL..." style="font-size:11px" oninput="previewLogoUrl(this.value)" />
+        </div>
+      </div>
+    </div>
     <input type="hidden" id="cId" />
+    <input type="hidden" id="cLogoData" />
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('clientModal')">Cancelar</button>
       <button class="btn-save" onclick="saveClient()">Salvar</button>
@@ -452,6 +468,70 @@ const COLORS = ['#4caf6e','#e8834a','#5b9bd5','#d46b8a','#c9a84c','#8b6fd4','#4c
 
 let state = { clients: [], activeClient: null, activeTab: 'calendar', year: new Date().getFullYear(), month: new Date().getMonth(), posts: [], goals: [], metrics: null, filter: 'todos', user: null };
 
+// ─── LOGO HELPERS ───
+function previewLogo(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('cLogoData').value = e.target.result;
+    document.getElementById('cLogoUrl').value = '';
+    document.getElementById('logoPreview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:9px">`;
+  };
+  reader.readAsDataURL(file);
+}
+function previewLogoUrl(url) {
+  if (!url) { document.getElementById('logoPreview').innerHTML = 'logo'; document.getElementById('cLogoData').value = ''; return; }
+  document.getElementById('cLogoData').value = url;
+  document.getElementById('logoPreview').innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:9px" onerror="this.parentElement.innerHTML='logo'">`;
+}
+
+// ─── IMPORT HORTA EM CASA POSTS ───
+async function importHortaPosts() {
+  if (!state.activeClient) return;
+  if (!confirm(`Importar 29 posts de abril/2025 para "${state.activeClient.name}"?\n\nPosts já existentes não serão duplicados.`)) return;
+  const clientId = state.activeClient.id;
+  const hortaPosts = [
+    {date:'2025-04-07',platform:'instagram',type:'feed',pillar:'Frescor & Qualidade',title:'Produto da semana: beterraba fresca',caption:'Começa a semana com saúde! Beterraba selecionada, direto do produtor, te esperando aqui na Horta em Casa.'},
+    {date:'2025-04-14',platform:'instagram',type:'feed',pillar:'Frescor & Qualidade',title:'Produto da semana: alho-poró e temperos',caption:'Alho-poró fresquinho chegou! Perfeito pra sopas, refogados e muito mais. Corre pegar o seu.'},
+    {date:'2025-04-22',platform:'instagram',type:'feed',pillar:'Frescor & Qualidade',title:'Produto da semana: abóbora e moranga',caption:'Abóbora e moranga selecionadas pra você. Fresquinhas, saborosas e com preço justo de sempre.'},
+    {date:'2025-04-28',platform:'instagram',type:'feed',pillar:'Frescor & Qualidade',title:'Produto da semana: frutas da época',caption:'Essa semana tem frutas incríveis da época! Passa aqui ou pede pelo WhatsApp.'},
+    {date:'2025-04-01',platform:'instagram',type:'story',pillar:'Comunidade Local',title:'Terça de bastidores: chegada da mercadoria',caption:'Stories mostrando a equipe recebendo e organizando os produtos logo cedo.'},
+    {date:'2025-04-08',platform:'instagram',type:'story',pillar:'Comunidade Local',title:'Terça de bastidores: seleção do dia',caption:'A gente escolhe cada produto com cuidado. Vem ver como é feita a seleção aqui na Horta em Casa.'},
+    {date:'2025-04-15',platform:'instagram',type:'story',pillar:'Praticidade',title:'Terça de dica: como montar seu kit da semana',caption:'Story com dica rápida de como montar um kit de legumes e verduras pra semana toda sem desperdício.'},
+    {date:'2025-04-22',platform:'instagram',type:'story',pillar:'Comunidade Local',title:'Terça de bastidores: equipe em ação',caption:'Nosso time trabalhando com amor pra deixar tudo pronto pra você.'},
+    {date:'2025-04-29',platform:'instagram',type:'story',pillar:'Delivery & Facilidade',title:'Terça de dica: como pedir pelo WhatsApp',caption:'Nunca pediu delivery pela gente? Hoje a gente mostra o passo a passo em stories.'},
+    {date:'2025-04-02',platform:'instagram',type:'promo',pillar:'Promoções & Ofertas',title:'Quarta Verde semana 1',caption:'Hoje é Quarta Verde! Verduras selecionadas com preço especial. Aproveita!'},
+    {date:'2025-04-02',platform:'instagram',type:'reels',pillar:'Praticidade',title:'Reels: bandeja de legumes cortados pronta',caption:'Vídeo mostrando a praticidade das bandejas prontas para o almoço.'},
+    {date:'2025-04-09',platform:'instagram',type:'promo',pillar:'Promoções & Ofertas',title:'Quarta Verde semana 2',caption:'Quarta Verde de volta! Hoje os destaques são: brócolis, couve e repolho.'},
+    {date:'2025-04-16',platform:'instagram',type:'promo',pillar:'Promoções & Ofertas',title:'Quarta Verde semana 3',caption:'Quarta Verde! Destaque da semana: alface, espinafre e tomate.'},
+    {date:'2025-04-23',platform:'instagram',type:'promo',pillar:'Promoções & Ofertas',title:'Quarta Verde semana 4',caption:'Última Quarta Verde do mês! Aproveita as promoções da semana.'},
+    {date:'2025-04-03',platform:'instagram',type:'feed',pillar:'Dicas de Saúde',title:'3 benefícios da beterraba que você não sabia',caption:'A beterraba é uma das campeãs de nutrientes. Sabia que ela ajuda na pressão e na disposição?'},
+    {date:'2025-04-10',platform:'instagram',type:'feed',pillar:'Dicas de Saúde',title:'Receita rápida: sopa de legumes em 15 min',caption:'Caldo gostoso e nutritivo com o que você encontra aqui na Horta em Casa. Anota a receita!'},
+    {date:'2025-04-17',platform:'instagram',type:'feed',pillar:'Dicas de Saúde',title:'Como conservar verduras por mais tempo',caption:'Pequenas dicas que fazem toda diferença pra não desperdiçar o que você comprou.'},
+    {date:'2025-04-24',platform:'instagram',type:'feed',pillar:'Dicas de Saúde',title:'Frutas da época: o que comer em abril',caption:'Abril tem frutas incríveis! Veja quais estão no pico de sabor e nutrição agora.'},
+    {date:'2025-04-04',platform:'instagram',type:'story',pillar:'Delivery & Facilidade',title:'Sexta de delivery: pedidos abertos',caption:'Sexta-feira é dia de encher a caixinha de verduras! Manda mensagem no WhatsApp e a gente entrega.'},
+    {date:'2025-04-11',platform:'instagram',type:'feed',pillar:'Praticidade',title:'Kit fim de semana — legumes e temperos',caption:'Vai cozinhar no fim de semana? A gente separou tudo pra você. Kit completo por aqui.'},
+    {date:'2025-04-25',platform:'instagram',type:'story',pillar:'Delivery & Facilidade',title:'Sexta de delivery: combos especiais',caption:'Combo delivery especial essa semana! Chama no WhatsApp e confere as opções.'},
+    {date:'2025-04-05',platform:'instagram',type:'promo',pillar:'Promoções & Ofertas',title:'Sábado da Feira semana 1',caption:'Sábado é dia de feira na Horta em Casa! Vem buscar seus produtos fresquinhos.'},
+    {date:'2025-04-12',platform:'instagram',type:'promo',pillar:'Promoções & Ofertas',title:'Sábado da Feira semana 2',caption:'Mais um sábado cheio de frescor! Vem nos visitar ou chama no WhatsApp.'},
+    {date:'2025-04-19',platform:'instagram',type:'promo',pillar:'Promoções & Ofertas',title:'Sábado da Feira semana 3',caption:'Sábado de feira! Produtos selecionados esperando por você.'},
+    {date:'2025-04-26',platform:'instagram',type:'promo',pillar:'Promoções & Ofertas',title:'Sábado da Feira semana 4',caption:'Sábado da Feira! Encerrando o mês com muito frescor.'},
+    {date:'2025-04-06',platform:'instagram',type:'story',pillar:'Comunidade Local',title:'Domingo: obrigado pela semana!',caption:'Domingo mais leve com muita gratidão. Obrigado por cada visita e pedido essa semana!'},
+    {date:'2025-04-13',platform:'instagram',type:'story',pillar:'Frescor & Qualidade',title:'Domingo: produto do dia em destaque',caption:'Domingo com produto especial! Vem conferir o que está em destaque hoje.'},
+    {date:'2025-04-20',platform:'instagram',type:'story',pillar:'Comunidade Local',title:'Páscoa: obrigado pela semana santa',caption:'Feliz Páscoa! Obrigado por celebrar com a gente essa semana especial.'},
+    {date:'2025-04-27',platform:'instagram',type:'story',pillar:'Comunidade Local',title:'Domingo: fechando abril com carinho',caption:'Último domingo de abril! Muito obrigado por toda a confiança e carinho de vocês.'},
+  ].map(p => ({...p, client_id: clientId}));
+  const { data: existing } = await sb.from('posts').select('title,date').eq('client_id', clientId);
+  const existingKeys = new Set((existing||[]).map(p => p.date+'|'+p.title));
+  const toInsert = hortaPosts.filter(p => !existingKeys.has(p.date+'|'+p.title));
+  if (!toInsert.length) { toast('Todos os posts já existem!', 'ok'); return; }
+  const { error } = await sb.from('posts').insert(toInsert);
+  if (error) { toast('Erro ao importar: ' + error.message, 'err'); return; }
+  toast(`${toInsert.length} posts importados!`, 'ok');
+  await loadPosts();
+  renderClientView();
+}
+
 // ─── AUTH ───
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
@@ -489,8 +569,11 @@ function renderSidebar() {
     item.className = 'client-item' + (state.activeClient?.id === c.id ? ' active' : '');
     const letter = c.name.charAt(0).toUpperCase();
     const color = c.color || COLORS[0];
+    const avatarHtml = c.logo
+      ? `<div class="client-avatar" style="background:${color}22;overflow:hidden"><img src="${c.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:7px"></div>`
+      : `<div class="client-avatar" style="background:${color}22;color:${color}">${letter}</div>`;
     item.innerHTML = `
-      <div class="client-avatar" style="background:${color}22;color:${color}">${letter}</div>
+      ${avatarHtml}
       <div><div class="client-name">${c.name}</div><div class="client-niche">${c.niche||''}</div></div>`;
     item.onclick = () => selectClient(c);
     list.appendChild(item);
@@ -526,9 +609,12 @@ function renderHome() {
     const card = document.createElement('div');
     card.className = 'client-card';
     card.style.setProperty('--accent', color);
+    const cardAvatarHtml = c.logo
+      ? `<div class="card-avatar" style="background:${color}22;overflow:hidden"><img src="${c.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:9px"></div>`
+      : `<div class="card-avatar" style="background:${color}22;color:${color}">${c.name.charAt(0)}</div>`;
     card.innerHTML = `
       <div class="card-top">
-        <div class="card-avatar" style="background:${color}22;color:${color}">${c.name.charAt(0)}</div>
+        ${cardAvatarHtml}
         <div><div class="card-name">${c.name}</div><div class="card-niche">${c.niche||'—'}</div></div>
       </div>
       <div class="card-stats">
@@ -553,6 +639,12 @@ function openNewClientModal(client) {
   document.getElementById('cInsta').value = client?.instagram || '';
   document.getElementById('cTiktok').value = client?.tiktok || '';
   document.getElementById('cColor').value = client?.color || '#4caf6e';
+  const logo = client?.logo || '';
+  document.getElementById('cLogoData').value = logo;
+  document.getElementById('cLogoUrl').value = logo.startsWith('data:') ? '' : logo;
+  document.getElementById('cLogoFile').value = '';
+  const prev = document.getElementById('logoPreview');
+  prev.innerHTML = logo ? `<img src="${logo}" style="width:100%;height:100%;object-fit:cover;border-radius:9px">` : 'logo';
   openModal('clientModal');
 }
 
@@ -564,6 +656,7 @@ async function saveClient() {
     instagram: document.getElementById('cInsta').value.trim(),
     tiktok: document.getElementById('cTiktok').value.trim(),
     color: document.getElementById('cColor').value,
+    logo: document.getElementById('cLogoData').value || null,
   };
   if (!data.name) { toast('Informe o nome do cliente.', 'err'); return; }
   let result;
@@ -671,20 +764,18 @@ async function deleteGoal(id) {
 
 // ─── METRICS ───
 async function loadMetrics() {
-  const now = new Date();
   const { data } = await sb.from('metrics')
     .select('*')
     .eq('client_id', state.activeClient.id)
-    .eq('year', now.getFullYear())
-    .eq('month', now.getMonth() + 1)
+    .eq('year', state.year)
+    .eq('month', state.month + 1)
     .maybeSingle();
   state.metrics = data;
 }
 
 async function saveMetrics() {
-  const now = new Date();
   const fields = ['ig_seguidores','ig_alcance','ig_impressoes','ig_engajamento','ig_salvamentos','ig_compartilhamentos','tt_seguidores','tt_views','tt_conclusao','tt_compartilhamentos','tt_fyp','wa_contatos','wa_taxa_resposta','wa_enviadas'];
-  const data = { client_id: state.activeClient.id, year: now.getFullYear(), month: now.getMonth() + 1 };
+  const data = { client_id: state.activeClient.id, year: state.year, month: state.month + 1 };
   fields.forEach(f => {
     const el = document.getElementById('m_' + f);
     if (el) data[f] = el.value ? parseFloat(el.value) : null;
@@ -704,12 +795,16 @@ function renderClientView() {
   const c = state.activeClient;
   const color = c.color || COLORS[0];
   const content = document.getElementById('mainContent');
+  const headerAvatarHtml = c.logo
+    ? `<div class="client-header-avatar" style="background:${color}22;overflow:hidden"><img src="${c.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:11px"></div>`
+    : `<div class="client-header-avatar" style="background:${color}22;color:${color}">${c.name.charAt(0)}</div>`;
   content.innerHTML = `
     <div class="client-header">
-      <div class="client-header-avatar" style="background:${color}22;color:${color}">${c.name.charAt(0)}</div>
+      ${headerAvatarHtml}
       <div><h1>${c.name}</h1><p>${c.niche||''} ${c.instagram ? '· ' + c.instagram : ''}</p></div>
       <button class="btn-edit-client" onclick="openNewClientModal(state.activeClient)">Editar</button>
       <button class="btn-edit-client" style="color:#e05e5e;border-color:#e05e5e33" onclick="deleteClient()">Excluir</button>
+      <button class="btn-edit-client" style="color:var(--green);border-color:var(--green)33" onclick="importHortaPosts()">⬇ Importar posts</button>
     </div>
     <div class="tabs">
       <button class="tab-btn ${state.activeTab==='calendar'?'active':''}" onclick="switchTab('calendar')">Calendário</button>
@@ -782,11 +877,13 @@ function renderCalendarTab(container) {
   }
 }
 
-function changeMonth(dir) {
+async function changeMonth(dir) {
   state.month += dir;
   if (state.month > 11) { state.month = 0; state.year++; }
   if (state.month < 0) { state.month = 11; state.year--; }
-  renderTab();
+  showLoading();
+  await Promise.all([loadPosts(), loadMetrics()]);
+  renderClientView();
 }
 
 // ─── POSTS TAB ───
@@ -859,7 +956,7 @@ function renderMetricsTab(container) {
       ${card('WhatsApp','Msg enviadas', m.wa_enviadas)}
     </div>
     <div class="metrics-form">
-      <h3>Atualizar métricas — ${MONTHS[new Date().getMonth()]} ${new Date().getFullYear()}</h3>
+      <h3>Atualizar métricas — ${MONTHS[state.month]} ${state.year}</h3>
       <div style="font-size:12px;color:var(--text2);margin-bottom:1rem;font-weight:600">Instagram</div>
       <div class="metrics-grid-form">
         ${fld('ig_seguidores','Seguidores',m.ig_seguidores)}
@@ -974,6 +1071,7 @@ create table clients (
   instagram text,
   tiktok text,
   color text,
+  logo text,
   created_at timestamptz default now()
 );
 
