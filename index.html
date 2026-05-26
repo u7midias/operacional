@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Parceria Comercial | U7 Mídias</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --verde: #00BF63;
+      --verde-escuro: #049951;
+      --preto: #101112;
+      --cinza: #424244;
+      --cinza-claro: #F3F4F2;
+      --branco: #FFFFFF;
+      --borda: rgba(255,255,255,0.12);
+      --sombra: 0 20px 60px rgba(0,0,0,0.22);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: var(--preto);
+      color: var(--branco);
+      line-height: 1.6;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .container {
+      width: min(1120px, 92%);
+      margin: 0 auto;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(16, 17, 18, 0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .nav {
+      height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      font-size: 1.15rem;
+    }
+
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: var(--verde);
+      color: var(--preto);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.72);
+    }
+
+    .nav-links a:hover {
+      color: var(--verde);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 22px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      border: none;
+      cursor: pointer;
+      transition: 0.25s ease;
+    }
+
+    .btn-primary {
+      background: var(--verde);
+      color: var(--preto);
+      box-shadow: 0 12px 35px rgba(0,191,99,0.28);
+    }
+
+    .btn-primary:hover {
+      background: var(--verde-escuro);
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      border: 1px solid rgba(255,255,255,0.18);
+      color: var(--branco);
+      background: transparent;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--verde);
+      color: var(--verde);
+      transform: translateY(-2px);
+    }
+
+    .hero {
+      padding: 90px 0 70px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,191,99,0.25), transparent 65%);
+      top: -180px;
+      right: -160px;
+      pointer-events: none;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 46px;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(0,191,99,0.12);
+      color: var(--verde);
+      border: 1px solid rgba(0,191,99,0.28);
+      font-weight: 700;
+      font-size: 0.82rem;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      font-size: clamp(2.3rem, 5vw, 4.7rem);
+      line-height: 1.02;
+      letter-spacing: -2px;
+      margin-bottom: 24px;
+    }
+
+    h1 span {
+      color: var(--verde);
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: rgba(255,255,255,0.72);
+      max-width: 680px;
+      margin-bottom: 32px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .hero-card {
+      background: linear-gradient(145deg, rgba(66,66,68,0.72), rgba(255,255,255,0.06));
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 30px;
+      padding: 30px;
+      box-shadow: var(--sombra);
+    }
+
+    .hero-card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 18px;
+    }
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .stat:last-child {
+      border-bottom: none;
+    }
+
+    .stat small {
+      color: rgba(255,255,255,0.6);
+    }
+
+    .stat strong {
+      color: var(--verde);
+      font-size: 1.05rem;
+      text-align: right;
+    }
+
+    section {
+      padding: 70px 0;
+    }
+
+    .section-title {
+      text-align: center;
+      margin-bottom: 42px;
+    }
+
+    .section-title h2 {
+      font-size: clamp(1.8rem, 3vw, 3rem);
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+
+    .section-title p {
+      color: rgba(255,255,255,0.66);
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+    }
+
+    .service-card {
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 22px;
+      padding: 24px;
+      cursor: pointer;
+      transition: 0.25s ease;
+      min-height: 220px;
+    }
+
+    .service-card:hover,
+    .service-card.active {
+      background: rgba(0,191,99,0.12);
+      border-color: rgba(0,191,99,0.45);
+      transform: translateY(-6px);
+    }
+
+    .service-number {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--verde);
+      color: var(--preto);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      margin-bottom: 18px;
+    }
+
+    .service-card h3 {
+      font-size: 1rem;
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+
+    .service-card p {
+      font-size: 0.84rem;
+      color: rgba(255,255,255,0.65);
+    }
+
+    .info-box {
+      margin-top: 28px;
+      background: var(--branco);
+      color: var(--preto);
+      border-radius: 28px;
+      padding: 30px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .info-box.show {
+      display: block;
+    }
+
+    .info-box h3 {
+      color: var(--preto);
+      margin-bottom: 8px;
+      font-size: 1.35rem;
+    }
+
+    .info-box p {
+      color: #3d3d3d;
+    }
+
+    .how {
+      background: var(--branco);
+      color: var(--preto);
+    }
+
+    .how .section-title p {
+      color: rgba(0,0,0,0.62);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .step {
+      background: var(--cinza-claro);
+      border-radius: 24px;
+      padding: 28px;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .step strong {
+      display: inline-block;
+      color: var(--verde);
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+
+    .step h3 {
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+    }
+
+    .step p {
+      color: rgba(0,0,0,0.62);
+      font-size: 0.95rem;
+    }
+
+    .training-box {
+      margin-top: 28px;
+      background: var(--preto);
+      color: var(--branco);
+      border-radius: 28px;
+      padding: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 26px;
+      box-shadow: 0 18px 45px rgba(0,0,0,0.16);
+    }
+
+    .training-box strong {
+      display: inline-block;
+      color: var(--verde);
+      font-size: 0.82rem;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+    }
+
+    .training-box h3 {
+      font-size: clamp(1.45rem, 3vw, 2rem);
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+
+    .training-box p {
+      color: rgba(255,255,255,0.68);
+      max-width: 780px;
+      font-size: 0.98rem;
+    }
+
+    .training-badge {
+      min-width: 118px;
+      height: 118px;
+      border-radius: 30px;
+      background: var(--verde);
+      color: var(--preto);
+      display: grid;
+      place-items: center;
+      font-size: 2.6rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .commission-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      align-items: stretch;
+    }
+
+    .commission-card {
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 28px;
+      padding: 32px;
+    }
+
+    .commission-card h3 {
+      font-size: 1.55rem;
+      margin-bottom: 12px;
+    }
+
+    .commission-card p {
+      color: rgba(255,255,255,0.68);
+      margin-bottom: 22px;
+    }
+
+    .range {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      padding: 12px 18px;
+      background: rgba(0,191,99,0.12);
+      color: var(--verde);
+      border: 1px solid rgba(0,191,99,0.25);
+      border-radius: 999px;
+      font-weight: 800;
+    }
+
+    .calculator {
+      background: var(--verde);
+      color: var(--preto);
+      border-radius: 28px;
+      padding: 32px;
+    }
+
+    .calculator h3 {
+      font-size: 1.55rem;
+      margin-bottom: 10px;
+    }
+
+    .calculator p {
+      color: rgba(0,0,0,0.7);
+      margin-bottom: 22px;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      border: none;
+      outline: none;
+      border-radius: 16px;
+      padding: 15px;
+      font-family: inherit;
+      font-size: 1rem;
+      background: rgba(255,255,255,0.92);
+      color: var(--preto);
+    }
+
+    .result {
+      margin-top: 20px;
+      background: var(--preto);
+      color: var(--branco);
+      border-radius: 22px;
+      padding: 22px;
+    }
+
+    .result span {
+      color: var(--verde);
+      font-weight: 900;
+      font-size: 1.8rem;
+      display: block;
+      margin-top: 4px;
+    }
+
+    .faq {
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .faq-question {
+      width: 100%;
+      padding: 22px 0;
+      background: none;
+      border: none;
+      color: var(--branco);
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .faq-question span {
+      color: var(--verde);
+      font-size: 1.4rem;
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      color: rgba(255,255,255,0.67);
+    }
+
+    .faq-answer p {
+      padding-bottom: 20px;
+    }
+
+    .faq-item.open .faq-answer {
+      max-height: 240px;
+    }
+
+    .cta {
+      background: linear-gradient(145deg, var(--verde), #00d870);
+      color: var(--preto);
+      text-align: center;
+      padding: 70px 20px;
+    }
+
+    .cta h2 {
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+      margin-bottom: 16px;
+    }
+
+    .cta p {
+      max-width: 680px;
+      margin: 0 auto 28px;
+      color: rgba(0,0,0,0.72);
+      font-weight: 500;
+    }
+
+    .cta .btn {
+      background: var(--preto);
+      color: var(--branco);
+    }
+
+    footer {
+      padding: 28px 0;
+      color: rgba(255,255,255,0.48);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .commission-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-links {
+        display: none;
+      }
+    }
+
+    @media (max-width: 580px) {
+      .hero {
+        padding-top: 64px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .service-card {
+        min-height: auto;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .hero-card,
+      .commission-card,
+      .calculator,
+      .info-box,
+      .training-box {
+        padding: 24px;
+      }
+
+      .training-box {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .training-badge {
+        width: 100%;
+        height: 90px;
+        min-width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="container nav">
+      <div class="logo">
+        <div class="logo-mark">U7</div>
+        <span>U7 Mídias</span>
+      </div>
+
+      <nav class="nav-links">
+        <a href="#produtos">Produtos</a>
+        <a href="#funcao">Função</a>
+        <a href="#comissao">Comissão</a>
+        <a href="#duvidas">Dúvidas</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <div class="tag">Parceria comercial por comissão</div>
+
+          <h1>
+            Venda soluções da <span>U7 Mídias</span> e ganhe por resultado.
+          </h1>
+
+          <p>
+            Vi que você demonstrou interesse em trabalhar com vendas por comissão.
+            A U7 Mídias é uma agência de marketing que ajuda negócios a melhorarem sua presença digital,
+            venderem mais e organizarem melhor sua comunicação.
+          </p>
+
+          <div class="hero-actions">
+            <a href="#produtos" class="btn btn-primary">Ver como funciona</a>
+            <a href="#comissao" class="btn btn-outline">Simular comissão</a>
+          </div>
+        </div>
+
+        <div class="hero-card">
+          <h3>Resumo da oportunidade</h3>
+
+          <div class="stat">
+            <small>Modelo</small>
+            <strong>Comissão</strong>
+          </div>
+
+          <div class="stat">
+            <small>Treinamento</small>
+            <strong>10 horas</strong>
+          </div>
+
+          <div class="stat">
+            <small>Comissão inicial</small>
+            <strong>10%</strong>
+          </div>
+
+          <div class="stat">
+            <small>Possibilidade</small>
+            <strong>Até 20%</strong>
+          </div>
+
+          <div class="stat">
+            <small>Atuação</small>
+            <strong>Online ou presencial</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="produtos">
+      <div class="container">
+        <div class="section-title">
+          <h2>O que você pode vender</h2>
+          <p>
+            A U7 não trabalha apenas com pacotes genéricos. A proposta é vender soluções que façam sentido para cada negócio.
+          </p>
+        </div>
+
+        <div class="cards">
+          <div class="service-card active" onclick="showInfo('social', this)">
+            <div class="service-number">1</div>
+            <h3>Gestão de redes sociais</h3>
+            <p>Estratégia, planejamento, conteúdo, identidade visual e posicionamento.</p>
+          </div>
+
+          <div class="service-card" onclick="showInfo('trafego', this)">
+            <div class="service-number">2</div>
+            <h3>Tráfego pago</h3>
+            <p>Anúncios no Instagram, Facebook e Google para captar clientes.</p>
+          </div>
+
+          <div class="service-card" onclick="showInfo('consultoria', this)">
+            <div class="service-number">3</div>
+            <h3>Consultoria de marketing</h3>
+            <p>Para negócios que estão perdidos ou sem resultado nas ações atuais.</p>
+          </div>
+
+          <div class="service-card" onclick="showInfo('landing', this)">
+            <div class="service-number">4</div>
+            <h3>Landing pages</h3>
+            <p>Páginas específicas para campanhas, produtos, serviços e captação.</p>
+          </div>
+
+          <div class="service-card" onclick="showInfo('sistemas', this)">
+            <div class="service-number">5</div>
+            <h3>Sistemas personalizados</h3>
+            <p>Ferramentas para restaurantes, clínicas, salões, delivery e negócios locais.</p>
+          </div>
+        </div>
+
+        <div id="info-social" class="info-box show">
+          <h3>Gestão de redes sociais / Social media</h3>
+          <p>
+            Esse é um dos principais serviços da agência. Não é apenas “postar por postar”.
+            A U7 trabalha com estratégia, planejamento, criação de conteúdo, identidade visual,
+            legendas, organização da comunicação e posicionamento do negócio.
+          </p>
+        </div>
+
+        <div id="info-trafego" class="info-box">
+          <h3>Tráfego pago</h3>
+          <p>
+            Ideal para empresas que querem anunciar no Instagram, Facebook ou Google.
+            O objetivo é criar uma estrutura melhor para atrair clientes e transformar anúncios em oportunidades reais.
+          </p>
+        </div>
+
+        <div id="info-consultoria" class="info-box">
+          <h3>Consultoria de marketing</h3>
+          <p>
+            Para negócios que não sabem por onde começar, sentem que estão fazendo marketing sem direção
+            ou já tentaram várias ações, mas ainda não conseguiram resultado.
+          </p>
+        </div>
+
+        <div id="info-landing" class="info-box">
+          <h3>Landing pages e páginas de venda</h3>
+          <p>
+            Criamos páginas específicas para campanhas, produtos, serviços ou captação de clientes.
+            É uma solução para empresas que precisam divulgar algo com mais foco do que apenas postar nas redes sociais.
+          </p>
+        </div>
+
+        <div id="info-sistemas" class="info-box">
+          <h3>Sistemas personalizados</h3>
+          <p>
+            São sistemas para negócios locais, como restaurantes, lanchonetes, hortifrútis, clínicas,
+            salões, barbearias e prestadores de serviço. Eles ajudam em pedidos, comandas, agendamentos,
+            relatórios e organização da operação.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="how" id="funcao">
+      <div class="container">
+        <div class="section-title">
+          <h2>Qual seria sua função?</h2>
+          <p>
+            A ideia é uma venda consultiva, sem abordagem forçada. Primeiro entendemos o problema do cliente,
+            depois mostramos a solução que faz mais sentido.
+          </p>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <strong>PASSO 1</strong>
+            <h3>Prospectar empresas</h3>
+            <p>
+              Você pode procurar possíveis clientes presencialmente, pelo WhatsApp, Instagram,
+              indicação ou contato direto com negócios locais.
+            </p>
+          </div>
+
+          <div class="step">
+            <strong>PASSO 2</strong>
+            <h3>Identificar oportunidades</h3>
+            <p>
+              Entender se aquele negócio precisa melhorar as redes sociais, anunciar,
+              organizar o marketing, criar uma página ou usar um sistema.
+            </p>
+          </div>
+
+          <div class="step">
+            <strong>PASSO 3</strong>
+            <h3>Apresentar a solução</h3>
+            <p>
+              Com o apoio da U7, você apresenta a solução ideal. Quando o cliente fecha,
+              você recebe sua comissão conforme o projeto vendido.
+            </p>
+          </div>
+        </div>
+
+        <div class="training-box">
+          <div>
+            <strong>Treinamento incluso</strong>
+            <h3>Você vai receber um treinamento comercial de 10 horas</h3>
+            <p>
+              Antes de começar as abordagens, você terá um treinamento para entender os produtos da U7 Mídias,
+              aprender como apresentar cada solução, como abordar possíveis clientes e como conduzir uma venda consultiva,
+              sem pressão e com mais segurança.
+            </p>
+          </div>
+
+          <div class="training-badge">
+            10h
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="comissao">
+      <div class="container">
+        <div class="section-title">
+          <h2>Como funciona a comissão</h2>
+          <p>
+            A parceria é por comissão. Ou seja: você prospecta, apresenta oportunidades e recebe quando o cliente fecha.
+          </p>
+        </div>
+
+        <div class="commission-grid">
+          <div class="commission-card">
+            <h3>Comissão inicial</h3>
+            <p>
+              A comissão mínima é de 10% sobre o valor da venda, podendo chegar até 20% dependendo do produto,
+              serviço ou projeto fechado.
+            </p>
+
+            <div class="range">
+              <div class="pill">10% mínimo</div>
+              <div class="pill">Até 20%</div>
+              <div class="pill">Venda consultiva</div>
+            </div>
+
+            <br>
+
+            <p>
+              Exemplo: se você vender um contrato de R$ 1.200 por mês,
+              sua comissão pode ficar entre R$ 120 e R$ 240.
+            </p>
+
+            <p>
+              No caso de social media, normalmente trabalhamos com contrato mínimo de 3 meses,
+              mas a comissão é calculada sobre o primeiro mês do contrato.
+            </p>
+          </div>
+
+          <div class="calculator">
+            <h3>Simule sua comissão</h3>
+            <p>
+              Digite o valor de uma venda e escolha a porcentagem para ver quanto você poderia receber.
+            </p>
+
+            <div class="field">
+              <label for="valor">Valor da venda</label>
+              <input type="number" id="valor" value="1200" min="0" oninput="calcularComissao()">
+            </div>
+
+            <div class="field">
+              <label for="porcentagem">Porcentagem de comissão</label>
+              <select id="porcentagem" onchange="calcularComissao()">
+                <option value="10">10%</option>
+                <option value="15">15%</option>
+                <option value="20">20%</option>
+              </select>
+            </div>
+
+            <div class="result">
+              Sua comissão estimada:
+              <span id="resultado">R$ 120,00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="duvidas">
+      <div class="container">
+        <div class="section-title">
+          <h2>Dúvidas comuns</h2>
+          <p>
+            Alguns pontos importantes para entender antes de começar.
+          </p>
+        </div>
+
+        <div class="faq">
+          <div class="faq-item">
+            <button class="faq-question">
+              É um trabalho com salário fixo?
+              <span>+</span>
+            </button>
+            <div class="faq-answer">
+              <p>
+                A princípio, não. É uma parceria comercial por comissão. Você recebe conforme os clientes que forem fechados.
+              </p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              Posso prospectar online?
+              <span>+</span>
+            </button>
+            <div class="faq-answer">
+              <p>
+                Sim. Você pode prospectar presencialmente ou online, na sua cidade ou em outras regiões.
+              </p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              Preciso entender tudo de marketing?
+              <span>+</span>
+            </button>
+            <div class="faq-answer">
+              <p>
+                Não precisa começar sabendo tudo. Antes de iniciar as abordagens, você terá um treinamento
+                de 10 horas para entender os produtos, os serviços, os valores de referência e a melhor forma
+                de apresentar as soluções da U7 Mídias.
+              </p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              Como começo?
+              <span>+</span>
+            </button>
+            <div class="faq-answer">
+              <p>
+                O próximo passo é receber os materiais, passar pelo treinamento comercial, entender melhor os produtos,
+                os valores de referência e começar as primeiras abordagens com orientação.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div class="container">
+        <h2>Quer seguir com a parceria?</h2>
+        <p>
+          A proposta é simples: você indica, prospecta e ajuda a trazer clientes para a U7.
+          Quando o cliente fecha, você recebe sua comissão.
+        </p>
+
+        <a
+          class="btn"
+          href="https://wa.me/5511934121551?text=Oi%2C%20tenho%20interesse%20em%20seguir%20com%20a%20parceria%20comercial%20da%20U7%20M%C3%ADdias."
+          target="_blank"
+        >
+          Tenho interesse
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      U7 Mídias — Marketing, estratégia e soluções digitais para negócios.
+    </div>
+  </footer>
+
+  <script>
+    function showInfo(id, element) {
+      const boxes = document.querySelectorAll('.info-box');
+      boxes.forEach(box => box.classList.remove('show'));
+
+      const cards = document.querySelectorAll('.service-card');
+      cards.forEach(card => card.classList.remove('active'));
+
+      document.getElementById('info-' + id).classList.add('show');
+      element.classList.add('active');
+    }
+
+    function calcularComissao() {
+      const valor = Number(document.getElementById('valor').value) || 0;
+      const porcentagem = Number(document.getElementById('porcentagem').value) || 10;
+      const resultado = valor * (porcentagem / 100);
+
+      document.getElementById('resultado').innerText = resultado.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
+    }
+
+    const questions = document.querySelectorAll('.faq-question');
+
+    questions.forEach(question => {
+      question.addEventListener('click', () => {
+        const item = question.parentElement;
+        const isOpen = item.classList.contains('open');
+
+        document.querySelectorAll('.faq-item').forEach(faq => {
+          faq.classList.remove('open');
+          faq.querySelector('span').innerText = '+';
+        });
+
+        if (!isOpen) {
+          item.classList.add('open');
+          question.querySelector('span').innerText = '−';
+        }
+      });
+    });
+
+    calcularComissao();
+  </script>
+
+</body>
+</html>
