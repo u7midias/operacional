@@ -1,0 +1,13 @@
+project_id = "u7-plataforma-aprovacao"
+
+# As três funções são chamadas sem sessão Supabase (webhook do Trello e
+# portal público do cliente sem login), então a validação de acesso é feita
+# manualmente dentro de cada função — não pelo JWT do Supabase.
+[functions.sync-trello]
+verify_jwt = false
+
+[functions.approve-post]
+verify_jwt = false
+
+[functions.get-posts]
+verify_jwt = false
