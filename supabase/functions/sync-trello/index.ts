@@ -76,6 +76,16 @@ async function getCard(cardId: string): Promise<TrelloCard> {
   return await res.json();
 }
 
+// clients.trello_board_id guarda o código curto que aparece na URL do board
+// (ex: trello.com/b/AbCd1234/nome-do-board) — é o jeito mais fácil de copiar
+// sem precisar mexer em API. O webhook do Trello manda o ID completo, então
+// resolvemos aqui pra esse código curto antes de comparar.
+async function getBoardShortLink(boardId: string): Promise<string | null> {
+  const res = await trelloFetch(`/boards/${boardId}?fields=shortLink`);
+  const data = await res.json();
+  return data?.shortLink ?? null;
+}
+
 const COMBINING_DIACRITICS_RE = /[̀-ͯ]/g;
 
 function normalize(value: string): string {
@@ -177,10 +187,12 @@ Deno.serve(async (req) => {
     return new Response("ok", { status: 200 });
   }
 
+  const shortLink = await getBoardShortLink(boardId);
+
   const { data: client } = await supabase
     .from("clients")
     .select("id, trello_board_id, is_active")
-    .eq("trello_board_id", boardId)
+    .eq("trello_board_id", shortLink ?? boardId)
     .maybeSingle();
 
   if (!client || !client.is_active) {

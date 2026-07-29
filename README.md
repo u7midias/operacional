@@ -13,13 +13,15 @@ produto e as decisões de arquitetura.
 
 ```
 app/aprovar/              Portal do cliente (Next.js, App Router)
+app/admin/                Painel interno pra cadastrar clientes (protegido por senha)
 components/               MonthCalendar, PostModal, StatusBadge
 lib/                      Tipos e client de API (chama as Edge Functions)
 supabase/migrations/      Schema do Postgres (clients, posts, approvals, ...)
 supabase/functions/
   sync-trello/            Recebe webhook do Trello -> upsert em `posts`
   approve-post/            Grava a decisão do cliente -> move card + comenta no Trello
-  get-posts/               Única leitura pública (valida token) para o portal
+  get-posts/               Única leitura pública (valida token) para o portal do cliente
+  admin-clients/           Lista/cadastra clientes e cria o webhook do Trello sozinho
 ```
 
 Segurança: RLS habilitado em todas as tabelas **sem nenhuma policy** — a
@@ -36,29 +38,21 @@ do cliente manualmente antes de qualquer leitura/escrita.
 2. Rode a migration em `supabase/migrations/0001_init.sql` (SQL Editor do
    dashboard, ou `supabase db push` via CLI).
 3. Configure os secrets das Edge Functions (dashboard: Edge Functions >
-   Secrets, ou `supabase secrets set`):
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
+   Secrets, ou `supabase secrets set`) — `SUPABASE_URL` e
+   `SUPABASE_SERVICE_ROLE_KEY` já existem automaticamente, só falta:
    - `TRELLO_API_KEY`
    - `TRELLO_API_TOKEN`
-4. Deploy das funções: `supabase functions deploy sync-trello approve-post get-posts`.
+   - `ADMIN_SECRET` — uma senha à sua escolha, usada só pelo painel `/admin`.
+4. Deploy das funções: `supabase functions deploy sync-trello approve-post get-posts admin-clients`.
 
 ### 2. Trello
 
-1. Gere uma API key + token em https://trello.com/app-key.
-2. Para cada board de cliente, crie um registro em `clients`:
-   ```sql
-   insert into clients (name, trello_board_id)
-   values ('Nome do Cliente', '<id do board no Trello>');
-   -- access_token é gerado automaticamente; é esse valor que compõe o link
-   -- /aprovar/?token={access_token} enviado ao cliente.
-   ```
-3. Cadastre um webhook do Trello por board, apontando para a Edge Function
-   `sync-trello`:
-   ```
-   POST https://api.trello.com/1/webhooks?key={key}&token={token}
-   idModel={board_id}&callbackURL={SUPABASE_URL}/functions/v1/sync-trello
-   ```
+1. Gere uma API key + token em https://trello.com/power-ups/admin (crie um
+   "aplicativo" qualquer, a chave e o token ficam disponíveis nas
+   configurações dele).
+2. Cadastre cada cliente pelo painel `/admin` do site (não precisa de SQL
+   nem de criar o webhook manualmente — veja "Cadastrando um cliente novo"
+   abaixo).
 
 ### 3. Frontend
 
@@ -78,6 +72,18 @@ do cliente manualmente antes de qualquer leitura/escrita.
    novo push no repositório, ele atualiza o site sozinho.
 5. O link a enviar para cada cliente fica
    `https://<projeto>.vercel.app/aprovar/?token={access_token}`.
+
+### Cadastrando um cliente novo
+
+Depois do setup inicial, cadastrar cada cliente novo é só isso — sem SQL,
+sem chamar API do Trello na mão:
+
+1. Acesse `/admin` no site (ex: `https://<projeto>.vercel.app/admin`).
+2. Digite a senha (o valor que você colocou em `ADMIN_SECRET`).
+3. Preencha o nome do cliente e o código do board do Trello (o de 8
+   caracteres que aparece na URL do board: `trello.com/b/AbCd1234/...`).
+4. Clique em **Cadastrar**. O sistema cria o cliente, registra o webhook no
+   Trello automaticamente e mostra o link pronto pra copiar e enviar.
 
 ## Observações
 

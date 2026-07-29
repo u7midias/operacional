@@ -16,3 +16,12 @@ export interface GetPostsResponse {
   client: { name: string };
   posts: ClientPost[];
 }
+
+export interface AdminClient {
+  id: string;
+  name: string;
+  trello_board_id: string;
+  access_token: string;
+  is_active: boolean;
+  created_at: string;
+}

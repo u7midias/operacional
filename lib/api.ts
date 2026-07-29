@@ -1,4 +1,4 @@
-import type { GetPostsResponse } from "./types";
+import type { AdminClient, GetPostsResponse } from "./types";
 
 function functionsUrl(name: string): string {
   const base = process.env.NEXT_PUBLIC_SUPABASE_FUNCTIONS_URL;
@@ -40,4 +40,41 @@ export function decidePost(params: {
     action: params.action,
     comment: params.comment,
   });
+}
+
+export async function adminListClients(adminSecret: string): Promise<AdminClient[]> {
+  const res = await fetch(functionsUrl("admin-clients"), {
+    method: "GET",
+    headers: { "x-admin-secret": adminSecret },
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(data?.error ?? `Erro inesperado (${res.status}).`);
+  }
+
+  return (data?.clients as AdminClient[]) ?? [];
+}
+
+export async function adminCreateClient(
+  adminSecret: string,
+  params: { name: string; trelloBoardShortLink: string },
+): Promise<{ client: AdminClient; webhookWarning: string | null }> {
+  const res = await fetch(functionsUrl("admin-clients"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-admin-secret": adminSecret },
+    body: JSON.stringify({
+      name: params.name,
+      trello_board_short_link: params.trelloBoardShortLink,
+    }),
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(data?.error ?? `Erro inesperado (${res.status}).`);
+  }
+
+  return data as { client: AdminClient; webhookWarning: string | null };
 }
