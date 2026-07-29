@@ -4,13 +4,38 @@
 // chave anon nas tabelas, então o frontend nunca lê `posts`/`clients`
 // diretamente — ele chama esta função, que valida o token de acesso e
 // devolve somente os campos relevantes para o calendário/detalhe do post.
+//
+// Arquivo autocontido (sem imports de outras pastas) para poder ser colado
+// direto no editor de Edge Functions do painel do Supabase.
 
-import { corsHeaders, handlePreflight, jsonResponse } from "../_shared/cors.ts";
-import { supabaseAdmin } from "../_shared/supabaseAdmin.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function supabaseAdmin() {
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceRoleKey) {
+    throw new Error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY não configurados.");
+  }
+  return createClient(url, serviceRoleKey, { auth: { persistSession: false } });
+}
 
 Deno.serve(async (req) => {
-  const preflight = handlePreflight(req);
-  if (preflight) return preflight;
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });

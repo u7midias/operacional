@@ -4,10 +4,83 @@
 // valida o token de acesso, grava o registro em `approvals`, atualiza o
 // status do post e reflete a decisão de volta no Trello (move o card +
 // comenta).
+//
+// Arquivo autocontido (sem imports de outras pastas) para poder ser colado
+// direto no editor de Edge Functions do painel do Supabase.
 
-import { corsHeaders, handlePreflight, jsonResponse } from "../_shared/cors.ts";
-import { supabaseAdmin } from "../_shared/supabaseAdmin.ts";
-import { commentOnCard, findListIdByName, moveCardToList } from "../_shared/trello.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function supabaseAdmin() {
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceRoleKey) {
+    throw new Error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY não configurados.");
+  }
+  return createClient(url, serviceRoleKey, { auth: { persistSession: false } });
+}
+
+const TRELLO_API_BASE = "https://api.trello.com/1";
+
+function trelloAuthParams(): string {
+  const key = Deno.env.get("TRELLO_API_KEY");
+  const token = Deno.env.get("TRELLO_API_TOKEN");
+  if (!key || !token) {
+    throw new Error("TRELLO_API_KEY / TRELLO_API_TOKEN não configurados.");
+  }
+  return `key=${key}&token=${token}`;
+}
+
+async function trelloFetch(path: string, init?: RequestInit): Promise<Response> {
+  const separator = path.includes("?") ? "&" : "?";
+  const res = await fetch(`${TRELLO_API_BASE}${path}${separator}${trelloAuthParams()}`, init);
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Trello API error (${res.status}) em ${path}: ${body}`);
+  }
+  return res;
+}
+
+async function getBoardLists(boardId: string): Promise<{ id: string; name: string }[]> {
+  const res = await trelloFetch(`/boards/${boardId}/lists?fields=name`);
+  return await res.json();
+}
+
+function normalize(value: string): string {
+  const COMBINING_DIACRITICS_RE = /[̀-ͯ]/g;
+  return value.normalize("NFD").replace(COMBINING_DIACRITICS_RE, "").trim().toLowerCase();
+}
+
+async function findListIdByName(boardId: string, listName: string): Promise<string | null> {
+  const lists = await getBoardLists(boardId);
+  const normalizedTarget = normalize(listName);
+  const match = lists.find((list) => normalize(list.name) === normalizedTarget);
+  return match?.id ?? null;
+}
+
+async function moveCardToList(cardId: string, listId: string): Promise<void> {
+  await trelloFetch(`/cards/${cardId}?idList=${listId}`, { method: "PUT" });
+}
+
+async function commentOnCard(cardId: string, text: string): Promise<void> {
+  await trelloFetch(`/cards/${cardId}/actions/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+}
 
 const TARGET_LIST_BY_ACTION = {
   aprovado: "Agendar",
@@ -20,8 +93,9 @@ const NEW_STATUS_BY_ACTION = {
 } as const;
 
 Deno.serve(async (req) => {
-  const preflight = handlePreflight(req);
-  if (preflight) return preflight;
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
