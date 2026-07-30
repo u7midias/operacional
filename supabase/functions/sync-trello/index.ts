@@ -124,26 +124,30 @@ function extractFormat(labels: TrelloLabel[]): PostFormat | null {
 
 const DRIVE_LINK_RE = /https:\/\/(?:drive|docs)\.google\.com\S+/i;
 
+function isImageAttachment(att: TrelloAttachment): boolean {
+  return !!att.mimeType?.startsWith("image/") || /\.(png|jpe?g|gif|webp)(\?|$)/i.test(att.url);
+}
+
+// Um post pode ter várias imagens anexadas (carrossel) — nesse caso
+// devolvemos todas, na ordem em que foram anexadas no card.
 function extractMedia(
   card: Pick<TrelloCard, "desc" | "attachments">,
-): { mediaType: MediaType; mediaUrl: string } | null {
-  const imageAttachment = (card.attachments ?? []).find((att) =>
-    att.mimeType?.startsWith("image/") || /\.(png|jpe?g|gif|webp)(\?|$)/i.test(att.url),
-  );
-  if (imageAttachment) {
-    return { mediaType: "imagem", mediaUrl: imageAttachment.url };
+): { mediaType: MediaType; mediaUrls: string[] } | null {
+  const imageAttachments = (card.attachments ?? []).filter(isImageAttachment);
+  if (imageAttachments.length > 0) {
+    return { mediaType: "imagem", mediaUrls: imageAttachments.map((att) => att.url) };
   }
 
   const driveLinkInDesc = card.desc?.match(DRIVE_LINK_RE)?.[0];
   if (driveLinkInDesc) {
-    return { mediaType: "video", mediaUrl: driveLinkInDesc };
+    return { mediaType: "video", mediaUrls: [driveLinkInDesc] };
   }
 
   const nonImageAttachment = (card.attachments ?? [])[0];
   if (nonImageAttachment) {
     const driveLinkInAttachment = nonImageAttachment.url.match(DRIVE_LINK_RE)?.[0];
     if (driveLinkInAttachment) {
-      return { mediaType: "video", mediaUrl: driveLinkInAttachment };
+      return { mediaType: "video", mediaUrls: [driveLinkInAttachment] };
     }
   }
 
@@ -211,7 +215,7 @@ Deno.serve(async (req) => {
       format: extractFormat(card.labels ?? []),
       caption: card.desc ?? null,
       media_type: media?.mediaType ?? null,
-      media_url: media?.mediaUrl ?? null,
+      media_urls: media?.mediaUrls ?? [],
       scheduled_date: card.due ? card.due.slice(0, 10) : null,
       status: mapListNameToStatus(card.list?.name),
     },

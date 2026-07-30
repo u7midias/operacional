@@ -1,7 +1,7 @@
 "use client";
 
-import { FORMAT_LABEL } from "@/lib/statusLabels";
 import type { ClientPost } from "@/lib/types";
+import { FormatBadge } from "./FormatBadge";
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -80,12 +80,10 @@ export function MonthCalendar({
                 <button
                   key={post.id}
                   onClick={() => onSelectPost(post)}
-                  className="flex items-center gap-1 rounded bg-neutral-100 px-1.5 py-0.5 text-left text-[11px] leading-tight hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+                  className="flex items-center gap-1 rounded px-0.5 py-0.5 text-left transition-opacity hover:opacity-80"
                 >
                   <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT_CLASS[post.status]}`} />
-                  <span className="truncate">
-                    {post.format ? FORMAT_LABEL[post.format] : "Post"}
-                  </span>
+                  <FormatBadge format={post.format} />
                 </button>
               ))}
             </div>

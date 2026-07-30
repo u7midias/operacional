@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
   const { data: posts, error } = await supabase
     .from("posts")
-    .select("id, format, caption, media_type, media_url, scheduled_date, status")
+    .select("id, format, caption, media_type, media_urls, scheduled_date, status")
     .eq("client_id", client.id)
     .order("scheduled_date", { ascending: true, nullsFirst: false });
 

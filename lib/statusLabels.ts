@@ -19,3 +19,12 @@ export const FORMAT_LABEL: Record<string, string> = {
   story: "Story",
   reels: "Reels",
 };
+
+export const FORMAT_BADGE_CLASS: Record<string, string> = {
+  feed: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
+  story: "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900 dark:text-fuchsia-200",
+  reels: "bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200",
+};
+
+export const FORMAT_BADGE_FALLBACK_CLASS =
+  "bg-neutral-200 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300";

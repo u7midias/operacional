@@ -7,7 +7,7 @@ export interface ClientPost {
   format: PostFormat | null;
   caption: string | null;
   media_type: MediaType | null;
-  media_url: string | null;
+  media_urls: string[];
   scheduled_date: string | null; // YYYY-MM-DD
   status: PostStatus;
 }

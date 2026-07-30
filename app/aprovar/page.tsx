@@ -3,19 +3,39 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { fetchPosts } from "@/lib/api";
-import { FORMAT_LABEL } from "@/lib/statusLabels";
 import type { ClientPost } from "@/lib/types";
+import { FormatBadge } from "@/components/FormatBadge";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { PostModal } from "@/components/PostModal";
 import { StatusBadge } from "@/components/StatusBadge";
+import { WeekCalendar, startOfWeek } from "@/components/WeekCalendar";
 
 const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
   month: "long",
   year: "numeric",
 });
 
+const WEEK_DAY_MONTH_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
+  day: "numeric",
+  month: "short",
+});
+
+type ViewMode = "month" | "week";
+
 function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function weekRangeLabel(weekCursor: Date): string {
+  const start = startOfWeek(weekCursor);
+  const end = addDays(start, 6);
+  return `${WEEK_DAY_MONTH_FORMATTER.format(start)} – ${WEEK_DAY_MONTH_FORMATTER.format(end)}`;
 }
 
 function ClientPortal({ token }: { token: string }) {
@@ -24,6 +44,8 @@ function ClientPortal({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
+  const [weekCursor, setWeekCursor] = useState(() => startOfWeek(new Date()));
+  const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [selectedPost, setSelectedPost] = useState<ClientPost | null>(null);
 
   useEffect(() => {
@@ -61,6 +83,16 @@ function ClientPortal({ token }: { token: string }) {
     [posts, monthCursor],
   );
 
+  const postsInWeek = useMemo(() => {
+    const start = startOfWeek(weekCursor);
+    const end = addDays(start, 6);
+    return posts.filter((post) => {
+      if (!post.scheduled_date) return false;
+      const date = new Date(`${post.scheduled_date}T00:00:00`);
+      return date >= start && date <= end;
+    });
+  }, [posts, weekCursor]);
+
   const postsWithoutDate = useMemo(() => posts.filter((post) => !post.scheduled_date), [posts]);
 
   function handleDecided(postId: string, status: ClientPost["status"]) {
@@ -93,25 +125,72 @@ function ClientPortal({ token }: { token: string }) {
         </div>
       </header>
 
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex justify-center gap-1 rounded-lg border border-neutral-200 p-1 dark:border-neutral-800">
         <button
-          onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-          className="rounded-lg border border-neutral-300 px-3 py-1 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          onClick={() => setViewMode("month")}
+          className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium ${
+            viewMode === "month"
+              ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+              : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          }`}
         >
-          ← Anterior
+          Mês
         </button>
-        <span className="text-sm font-medium capitalize">
-          {MONTH_LABEL_FORMATTER.format(monthCursor)}
-        </span>
         <button
-          onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-          className="rounded-lg border border-neutral-300 px-3 py-1 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          onClick={() => setViewMode("week")}
+          className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium ${
+            viewMode === "week"
+              ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+              : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          }`}
         >
-          Próximo →
+          Semana
         </button>
       </div>
 
-      <MonthCalendar monthCursor={monthCursor} posts={postsInMonth} onSelectPost={setSelectedPost} />
+      {viewMode === "month" ? (
+        <>
+          <div className="mb-4 flex items-center justify-between">
+            <button
+              onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+              className="rounded-lg border border-neutral-300 px-3 py-1 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            >
+              ← Anterior
+            </button>
+            <span className="text-sm font-medium capitalize">
+              {MONTH_LABEL_FORMATTER.format(monthCursor)}
+            </span>
+            <button
+              onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+              className="rounded-lg border border-neutral-300 px-3 py-1 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            >
+              Próximo →
+            </button>
+          </div>
+
+          <MonthCalendar monthCursor={monthCursor} posts={postsInMonth} onSelectPost={setSelectedPost} />
+        </>
+      ) : (
+        <>
+          <div className="mb-4 flex items-center justify-between">
+            <button
+              onClick={() => setWeekCursor((d) => addDays(d, -7))}
+              className="rounded-lg border border-neutral-300 px-3 py-1 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            >
+              ← Anterior
+            </button>
+            <span className="text-sm font-medium">{weekRangeLabel(weekCursor)}</span>
+            <button
+              onClick={() => setWeekCursor((d) => addDays(d, 7))}
+              className="rounded-lg border border-neutral-300 px-3 py-1 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            >
+              Próximo →
+            </button>
+          </div>
+
+          <WeekCalendar weekCursor={weekCursor} posts={postsInWeek} onSelectPost={setSelectedPost} />
+        </>
+      )}
 
       {postsWithoutDate.length > 0 && (
         <section className="mt-8">
@@ -123,7 +202,7 @@ function ClientPortal({ token }: { token: string }) {
                 onClick={() => setSelectedPost(post)}
                 className="flex items-center justify-between gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-left text-sm hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800"
               >
-                <span>{post.format ? FORMAT_LABEL[post.format] : "Post"}</span>
+                <FormatBadge format={post.format} />
                 <StatusBadge status={post.status} />
               </button>
             ))}
