@@ -65,10 +65,15 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Acesso inválido." }, 401);
   }
 
+  // Etapas de produção interna (criação, produção, revisão) ficam escondidas
+  // do cliente — ele só vê a partir do momento em que há algo pra decidir.
+  const VISIBLE_STATUSES = ["em_aprovacao", "em_alteracao", "em_agendamento", "publicado"];
+
   const { data: posts, error } = await supabase
     .from("posts")
     .select("id, format, caption, media_type, media_urls, scheduled_date, status")
     .eq("client_id", client.id)
+    .in("status", VISIBLE_STATUSES)
     .order("scheduled_date", { ascending: true, nullsFirst: false });
 
   if (error) {
