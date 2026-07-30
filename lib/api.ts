@@ -60,7 +60,12 @@ export async function adminListClients(adminSecret: string): Promise<AdminClient
 export async function adminCreateClient(
   adminSecret: string,
   params: { name: string; trelloBoardShortLink: string },
-): Promise<{ client: AdminClient; importedCount: number; webhookWarning: string | null }> {
+): Promise<{
+  client: AdminClient;
+  importedCount: number;
+  webhookWarning: string | null;
+  debugFirstCard: unknown;
+}> {
   const res = await fetch(functionsUrl("admin-clients"), {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-admin-secret": adminSecret },
@@ -76,7 +81,12 @@ export async function adminCreateClient(
     throw new Error(data?.error ?? `Erro inesperado (${res.status}).`);
   }
 
-  return data as { client: AdminClient; importedCount: number; webhookWarning: string | null };
+  return data as {
+    client: AdminClient;
+    importedCount: number;
+    webhookWarning: string | null;
+    debugFirstCard: unknown;
+  };
 }
 
 export async function adminDeleteClient(adminSecret: string, clientId: string): Promise<void> {

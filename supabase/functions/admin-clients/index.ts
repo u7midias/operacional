@@ -256,11 +256,19 @@ function extractMedia(
 }
 
 // deno-lint-ignore no-explicit-any
-async function backfillPosts(supabase: any, clientId: string, boardFullId: string): Promise<number> {
+async function backfillPosts(
+  supabase: any,
+  clientId: string,
+  boardFullId: string,
+  // deno-lint-ignore no-explicit-any
+): Promise<{ count: number; debugFirstCard: any }> {
   const [lists, cardIds] = await Promise.all([getBoardLists(boardFullId), getBoardCardIds(boardFullId)]);
   const listNameById = new Map(lists.map((list) => [list.id, list.name]));
 
-  if (cardIds.length === 0) return 0;
+  if (cardIds.length === 0) return { count: 0, debugFirstCard: null };
+
+  // deno-lint-ignore no-explicit-any
+  let debugFirstCard: any = null;
 
   // Cada card é buscado individualmente (detalhes + anexos) — os campos
   // aninhados na listagem em lote do board não são confiáveis.
@@ -271,12 +279,20 @@ async function backfillPosts(supabase: any, clientId: string, boardFullId: strin
     ]);
     const listName = listNameById.get(card.idList) ?? null;
     const media = extractMedia({ desc: card.desc, attachments });
+    const format = extractFormat(card.labels ?? []);
+
+    if (!debugFirstCard) {
+      // Debug temporário: mostra exatamente o que o Trello devolveu pra
+      // esse card, pra descobrir por que o formato não está batendo.
+      debugFirstCard = { cardId, rawLabels: card.labels, extractedFormat: format };
+    }
+
     return {
       client_id: clientId,
       trello_card_id: cardId,
       trello_list_id: card.idList,
       trello_list_name: listName,
-      format: extractFormat(card.labels ?? []),
+      format,
       caption: card.desc ?? null,
       media_type: media?.mediaType ?? null,
       media_urls: media?.mediaUrls ?? [],
@@ -288,7 +304,7 @@ async function backfillPosts(supabase: any, clientId: string, boardFullId: strin
   const { error } = await supabase.from("posts").upsert(rows, { onConflict: "trello_card_id" });
   if (error) throw new Error(`Falha ao importar posts: ${error.message}`);
 
-  return rows.length;
+  return { count: rows.length, debugFirstCard };
 }
 
 Deno.serve(async (req) => {
@@ -395,10 +411,14 @@ Deno.serve(async (req) => {
   let importedCount = 0;
   let webhookWarning: string | null = null;
   let boardFullId: string | null = null;
+  // deno-lint-ignore no-explicit-any
+  let debugFirstCard: any = null;
 
   try {
     boardFullId = await getBoardFullId(shortLink);
-    importedCount = await backfillPosts(supabase, client.id, boardFullId);
+    const result = await backfillPosts(supabase, client.id, boardFullId);
+    importedCount = result.count;
+    debugFirstCard = result.debugFirstCard;
   } catch (backfillError) {
     console.error("Falha ao importar posts existentes:", backfillError);
     webhookWarning =
@@ -418,5 +438,5 @@ Deno.serve(async (req) => {
     }
   }
 
-  return jsonResponse({ client, importedCount, webhookWarning });
+  return jsonResponse({ client, importedCount, webhookWarning, debugFirstCard });
 });

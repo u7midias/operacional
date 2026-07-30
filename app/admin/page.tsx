@@ -27,6 +27,7 @@ export default function AdminPage() {
   const [lastCreatedUrl, setLastCreatedUrl] = useState<string | null>(null);
   const [lastImportedCount, setLastImportedCount] = useState<number | null>(null);
   const [lastWarning, setLastWarning] = useState<string | null>(null);
+  const [lastDebug, setLastDebug] = useState<unknown>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -75,6 +76,7 @@ export default function AdminPage() {
     setLastCreatedUrl(null);
     setLastImportedCount(null);
     setLastWarning(null);
+    setLastDebug(null);
 
     if (!name.trim() || !boardCode.trim()) {
       setFormError("Preencha o nome do cliente e o código do board.");
@@ -83,13 +85,14 @@ export default function AdminPage() {
 
     setSubmitting(true);
     try {
-      const { client, importedCount, webhookWarning } = await adminCreateClient(secret, {
+      const { client, importedCount, webhookWarning, debugFirstCard } = await adminCreateClient(secret, {
         name: name.trim(),
         trelloBoardShortLink: boardCode.trim(),
       });
       setLastCreatedUrl(portalUrl(client.access_token));
       setLastImportedCount(importedCount);
       setLastWarning(webhookWarning);
+      setLastDebug(debugFirstCard);
       setName("");
       setBoardCode("");
       await refreshClients(secret);
@@ -214,6 +217,17 @@ export default function AdminPage() {
           {lastWarning && (
             <p className="mt-2 text-amber-700 dark:text-amber-400">{lastWarning}</p>
           )}
+        </div>
+      )}
+
+      {lastDebug !== null && (
+        <div className="mt-4 rounded-lg border border-neutral-300 bg-neutral-50 p-3 text-xs dark:border-neutral-700 dark:bg-neutral-900">
+          <p className="mb-1 font-medium text-neutral-600 dark:text-neutral-300">
+            Debug — dados brutos do 1º post importado (temporário):
+          </p>
+          <pre className="overflow-x-auto whitespace-pre-wrap text-neutral-500 dark:text-neutral-400">
+            {JSON.stringify(lastDebug, null, 2)}
+          </pre>
         </div>
       )}
 
