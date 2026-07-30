@@ -65,9 +65,17 @@ function trelloAuthParams(): string {
   return `key=${key}&token=${token}`;
 }
 
-async function trelloFetch(path: string, init?: RequestInit): Promise<Response> {
+async function trelloFetch(path: string, init?: RequestInit, attempt = 1): Promise<Response> {
   const separator = path.includes("?") ? "&" : "?";
   const res = await fetch(`${TRELLO_API_BASE}${path}${separator}${trelloAuthParams()}`, init);
+
+  if (res.status === 429 && attempt <= 5) {
+    const retryAfterSeconds = Number(res.headers.get("Retry-After"));
+    const waitMs = (retryAfterSeconds > 0 ? retryAfterSeconds : attempt) * 1000;
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    return trelloFetch(path, init, attempt + 1);
+  }
+
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`Trello API error (${res.status}) em ${path}: ${body}`);

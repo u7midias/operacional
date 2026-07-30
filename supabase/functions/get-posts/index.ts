@@ -74,7 +74,8 @@ Deno.serve(async (req) => {
     .select("id, format, caption, media_type, media_urls, scheduled_date, status")
     .eq("client_id", client.id)
     .in("status", VISIBLE_STATUSES)
-    .order("scheduled_date", { ascending: true, nullsFirst: false });
+    .not("scheduled_date", "is", null)
+    .order("scheduled_date", { ascending: true });
 
   if (error) {
     console.error("Falha ao buscar posts:", error);

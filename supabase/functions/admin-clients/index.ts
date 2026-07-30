@@ -87,9 +87,21 @@ function trelloAuthParams(): string {
   return `key=${key}&token=${token}`;
 }
 
-async function trelloFetch(path: string, init?: RequestInit): Promise<Response> {
+async function trelloFetch(path: string, init?: RequestInit, attempt = 1): Promise<Response> {
   const separator = path.includes("?") ? "&" : "?";
   const res = await fetch(`${TRELLO_API_BASE}${path}${separator}${trelloAuthParams()}`, init);
+
+  // O Trello limita quantas chamadas por segundo aceita por token. Um
+  // backfill de muitos cards (ou recadastrar o board várias vezes seguidas)
+  // pode bater nesse limite — espera um pouco e tenta de novo em vez de
+  // desistir na hora.
+  if (res.status === 429 && attempt <= 5) {
+    const retryAfterSeconds = Number(res.headers.get("Retry-After"));
+    const waitMs = (retryAfterSeconds > 0 ? retryAfterSeconds : attempt) * 1000;
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    return trelloFetch(path, init, attempt + 1);
+  }
+
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`Trello API error (${res.status}) em ${path}: ${body}`);
@@ -108,10 +120,18 @@ async function getBoardLists(boardFullId: string): Promise<TrelloList[]> {
   return await res.json();
 }
 
-async function getBoardCards(boardFullId: string): Promise<TrelloCard[]> {
-  const res = await trelloFetch(
-    `/boards/${boardFullId}/cards?filter=open&fields=desc,due,idList&labels=true`,
-  );
+// Só pra saber quais cards existem no board — campos aninhados (labels,
+// attachments) num board inteiro de uma vez não são confiáveis, então essa
+// chamada só traz o id de cada card. Os detalhes de cada um são buscados
+// individualmente logo abaixo.
+async function getBoardCardIds(boardFullId: string): Promise<string[]> {
+  const res = await trelloFetch(`/boards/${boardFullId}/cards?filter=open&fields=id`);
+  const cards: { id: string }[] = await res.json();
+  return cards.map((c) => c.id);
+}
+
+async function getCardDetails(cardId: string): Promise<TrelloCard> {
+  const res = await trelloFetch(`/cards/${cardId}?fields=desc,due,idList&labels=true`);
   return await res.json();
 }
 
@@ -142,15 +162,24 @@ async function mapWithConcurrency<T, R>(
 }
 
 async function createTrelloWebhook(boardFullId: string, callbackUrl: string): Promise<void> {
-  await trelloFetch("/webhooks", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      description: "U7 Mídias - sync automático de posts",
-      callbackURL: callbackUrl,
-      idModel: boardFullId,
-    }),
-  });
+  try {
+    await trelloFetch("/webhooks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        description: "U7 Mídias - sync automático de posts",
+        callbackURL: callbackUrl,
+        idModel: boardFullId,
+      }),
+    });
+  } catch (err) {
+    // Recadastrar o mesmo board tenta criar o webhook de novo — se ele já
+    // existe (Trello recusa duplicado), não é uma falha de verdade.
+    if (err instanceof Error && /already exists/i.test(err.message)) {
+      return;
+    }
+    throw err;
+  }
 }
 
 function checkAdminSecret(secret: string | null): boolean {
@@ -228,21 +257,23 @@ function extractMedia(
 
 // deno-lint-ignore no-explicit-any
 async function backfillPosts(supabase: any, clientId: string, boardFullId: string): Promise<number> {
-  const [lists, cards] = await Promise.all([getBoardLists(boardFullId), getBoardCards(boardFullId)]);
+  const [lists, cardIds] = await Promise.all([getBoardLists(boardFullId), getBoardCardIds(boardFullId)]);
   const listNameById = new Map(lists.map((list) => [list.id, list.name]));
 
-  if (cards.length === 0) return 0;
+  if (cardIds.length === 0) return 0;
 
-  const attachmentsByCardId = new Map(
-    (await mapWithConcurrency(cards, 5, async (card) => [card.id, await getCardAttachments(card.id)] as const)),
-  );
-
-  const rows = cards.map((card) => {
+  // Cada card é buscado individualmente (detalhes + anexos) — os campos
+  // aninhados na listagem em lote do board não são confiáveis.
+  const rows = await mapWithConcurrency(cardIds, 3, async (cardId) => {
+    const [card, attachments] = await Promise.all([
+      getCardDetails(cardId),
+      getCardAttachments(cardId),
+    ]);
     const listName = listNameById.get(card.idList) ?? null;
-    const media = extractMedia({ desc: card.desc, attachments: attachmentsByCardId.get(card.id) ?? [] });
+    const media = extractMedia({ desc: card.desc, attachments });
     return {
       client_id: clientId,
-      trello_card_id: card.id,
+      trello_card_id: cardId,
       trello_list_id: card.idList,
       trello_list_name: listName,
       format: extractFormat(card.labels ?? []),

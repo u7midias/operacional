@@ -4,10 +4,8 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { fetchPosts } from "@/lib/api";
 import type { ClientPost } from "@/lib/types";
-import { FormatBadge } from "@/components/FormatBadge";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { PostModal } from "@/components/PostModal";
-import { StatusBadge } from "@/components/StatusBadge";
 import { WeekCalendar, startOfWeek } from "@/components/WeekCalendar";
 
 const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
@@ -92,8 +90,6 @@ function ClientPortal({ token }: { token: string }) {
       return date >= start && date <= end;
     });
   }, [posts, weekCursor]);
-
-  const postsWithoutDate = useMemo(() => posts.filter((post) => !post.scheduled_date), [posts]);
 
   function handleDecided(postId: string, status: ClientPost["status"]) {
     setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, status } : p)));
@@ -190,24 +186,6 @@ function ClientPortal({ token }: { token: string }) {
 
           <WeekCalendar weekCursor={weekCursor} posts={postsInWeek} onSelectPost={setSelectedPost} />
         </>
-      )}
-
-      {postsWithoutDate.length > 0 && (
-        <section className="mt-8">
-          <h2 className="mb-2 text-sm font-medium text-neutral-500">Sem data definida</h2>
-          <div className="flex flex-col gap-2">
-            {postsWithoutDate.map((post) => (
-              <button
-                key={post.id}
-                onClick={() => setSelectedPost(post)}
-                className="flex items-center justify-between gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-left text-sm hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800"
-              >
-                <FormatBadge format={post.format} />
-                <StatusBadge status={post.status} />
-              </button>
-            ))}
-          </div>
-        </section>
       )}
 
       {selectedPost && (
