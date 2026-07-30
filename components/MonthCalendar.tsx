@@ -1,8 +1,14 @@
 "use client";
 
-import { STATUS_DOT_CLASS, STATUS_LABEL, canOpenPost } from "@/lib/statusLabels";
+import {
+  FORMAT_BADGE_CLASS,
+  FORMAT_BADGE_FALLBACK_CLASS,
+  FORMAT_LABEL,
+  STATUS_BORDER_CLASS,
+  STATUS_LABEL,
+  canOpenPost,
+} from "@/lib/statusLabels";
 import type { ClientPost } from "@/lib/types";
-import { FormatBadge } from "./FormatBadge";
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -26,6 +32,48 @@ function buildCalendarCells(monthCursor: Date): (Date | null)[] {
   return cells;
 }
 
+function PostChip({
+  post,
+  onSelect,
+}: {
+  post: ClientPost;
+  onSelect: (post: ClientPost) => void;
+}) {
+  const openable = canOpenPost(post.status);
+  const colorClass = post.format
+    ? FORMAT_BADGE_CLASS[post.format]
+    : FORMAT_BADGE_FALLBACK_CLASS;
+  const label = post.format ? FORMAT_LABEL[post.format] : "Post";
+
+  // O chip ocupa a largura da célula e corta o texto por dentro: numa grade
+  // de 7 colunas no celular a célula tem ~45px, e um badge de largura
+  // natural vazava por cima da borda. O fundo indica o formato e a faixa da
+  // esquerda indica a etapa.
+  const className =
+    `block w-full truncate rounded-md border-l-[3px] px-1 py-0.5 text-center text-[10px] font-semibold leading-tight sm:text-xs ` +
+    `${colorClass} ${STATUS_BORDER_CLASS[post.status]}`;
+
+  // Posts ainda em produção interna aparecem (o cliente acompanha o
+  // planejamento) mas não abrem.
+  if (!openable) {
+    return (
+      <span title={`${label} · ${STATUS_LABEL[post.status]}`} className={`${className} opacity-50`}>
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => onSelect(post)}
+      title={`${label} · ${STATUS_LABEL[post.status]}`}
+      className={`${className} transition-transform hover:scale-[1.03] active:scale-95`}
+    >
+      {label}
+    </button>
+  );
+}
+
 export function MonthCalendar({
   monthCursor,
   posts,
@@ -47,15 +95,18 @@ export function MonthCalendar({
   const today = toDateKey(new Date());
 
   return (
-    <div className="grid grid-cols-7 gap-1 sm:gap-2">
+    <div className="grid grid-cols-7 gap-0.5 sm:gap-1.5">
       {WEEKDAY_LABELS.map((label) => (
-        <div key={label} className="text-center text-xs font-medium text-neutral-500">
+        <div
+          key={label}
+          className="pb-1 text-center text-[10px] font-semibold uppercase tracking-wide text-neutral-400 sm:text-xs"
+        >
           {label}
         </div>
       ))}
 
       {cells.map((date, i) => {
-        if (!date) return <div key={`empty-${i}`} className="min-h-20" />;
+        if (!date) return <div key={`empty-${i}`} />;
 
         const key = toDateKey(date);
         const dayPosts = postsByDate.get(key) ?? [];
@@ -64,44 +115,25 @@ export function MonthCalendar({
         return (
           <div
             key={key}
-            className={`min-h-20 rounded-lg border border-neutral-200 p-1 dark:border-neutral-800 ${
-              isToday ? "ring-1 ring-neutral-400" : ""
+            className={`flex min-h-[4.5rem] min-w-0 flex-col rounded-lg border p-0.5 sm:min-h-24 sm:p-1.5 ${
+              isToday
+                ? "border-neutral-900 bg-neutral-50 dark:border-white dark:bg-neutral-900"
+                : "border-neutral-200 dark:border-neutral-800"
             }`}
           >
-            <div className="text-xs text-neutral-500">{date.getDate()}</div>
-            <div className="mt-1 flex flex-col gap-1">
-              {dayPosts.map((post) => {
-                const openable = canOpenPost(post.status);
-                const content = (
-                  <>
-                    <span
-                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT_CLASS[post.status]}`}
-                    />
-                    <FormatBadge format={post.format} />
-                  </>
-                );
-
-                // Posts ainda em produção interna aparecem (o cliente
-                // acompanha o planejamento) mas não abrem.
-                return openable ? (
-                  <button
-                    key={post.id}
-                    onClick={() => onSelectPost(post)}
-                    title={STATUS_LABEL[post.status]}
-                    className="flex items-center gap-1 rounded px-0.5 py-0.5 text-left transition-opacity hover:opacity-80"
-                  >
-                    {content}
-                  </button>
-                ) : (
-                  <div
-                    key={post.id}
-                    title={STATUS_LABEL[post.status]}
-                    className="flex items-center gap-1 rounded px-0.5 py-0.5 opacity-60"
-                  >
-                    {content}
-                  </div>
-                );
-              })}
+            <div
+              className={`mb-0.5 text-center text-[10px] sm:text-left sm:text-xs ${
+                isToday
+                  ? "font-bold text-neutral-900 dark:text-white"
+                  : "text-neutral-400"
+              }`}
+            >
+              {date.getDate()}
+            </div>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              {dayPosts.map((post) => (
+                <PostChip key={post.id} post={post} onSelect={onSelectPost} />
+              ))}
             </div>
           </div>
         );

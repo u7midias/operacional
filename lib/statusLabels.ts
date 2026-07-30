@@ -20,6 +20,19 @@ export const STATUS_BADGE_CLASS: Record<PostStatus, string> = {
   publicado: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
 };
 
+// Usado como faixa lateral no chip do calendário mensal: ali a cor de fundo
+// já indica o formato, então o status entra como uma borda fina — cabe em
+// célula estreita sem roubar espaço do texto.
+export const STATUS_BORDER_CLASS: Record<PostStatus, string> = {
+  criacao_legenda: "border-slate-400",
+  em_producao: "border-blue-500",
+  em_revisao: "border-violet-500",
+  em_aprovacao: "border-amber-500",
+  em_alteracao: "border-orange-500",
+  em_agendamento: "border-teal-500",
+  publicado: "border-green-500",
+};
+
 export const STATUS_DOT_CLASS: Record<PostStatus, string> = {
   criacao_legenda: "bg-slate-400",
   em_producao: "bg-blue-500",

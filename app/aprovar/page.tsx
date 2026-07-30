@@ -113,57 +113,56 @@ function ClientPortal({ token }: { token: string }) {
     );
   }
 
+  const navButtonClass =
+    "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100 active:bg-neutral-200 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-800";
+
+  function tabClass(active: boolean) {
+    return `flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+      active
+        ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-700 dark:text-white"
+        : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+    }`;
+  }
+
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-8">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">{clientName}</h1>
-          <p className="text-sm text-neutral-500">
-            Calendário de posts — toque nos que estão em aprovação para avaliar.
-          </p>
-        </div>
+    <main className="mx-auto w-full max-w-4xl flex-1 px-3 pb-10 pt-5 sm:px-8 sm:pt-8">
+      <header className="mb-5">
+        <h1 className="text-2xl font-bold tracking-tight">{clientName}</h1>
+        <p className="mt-0.5 text-sm text-neutral-500">
+          Toque nos posts <span className="font-medium text-amber-600">em aprovação</span> para
+          avaliar.
+        </p>
       </header>
 
-      <div className="mb-4 flex justify-center gap-1 rounded-lg border border-neutral-200 p-1 dark:border-neutral-800">
-        <button
-          onClick={() => setViewMode("month")}
-          className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium ${
-            viewMode === "month"
-              ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-              : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-          }`}
-        >
+      {/* Alternador Mês/Semana, estilo "segmented control" */}
+      <div className="mb-4 flex gap-1 rounded-xl bg-neutral-100 p-1 dark:bg-neutral-800/60">
+        <button onClick={() => setViewMode("month")} className={tabClass(viewMode === "month")}>
           Mês
         </button>
-        <button
-          onClick={() => setViewMode("week")}
-          className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium ${
-            viewMode === "week"
-              ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-              : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-          }`}
-        >
+        <button onClick={() => setViewMode("week")} className={tabClass(viewMode === "week")}>
           Semana
         </button>
       </div>
 
       {viewMode === "month" ? (
         <>
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-3 flex items-center justify-between gap-2">
             <button
               onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-              className="rounded-lg border border-neutral-300 px-3 py-1 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              className={navButtonClass}
+              aria-label="Mês anterior"
             >
-              ← Anterior
+              ‹
             </button>
-            <span className="text-sm font-medium capitalize">
+            <span className="text-base font-semibold capitalize">
               {MONTH_LABEL_FORMATTER.format(monthCursor)}
             </span>
             <button
               onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-              className="rounded-lg border border-neutral-300 px-3 py-1 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              className={navButtonClass}
+              aria-label="Próximo mês"
             >
-              Próximo →
+              ›
             </button>
           </div>
 
@@ -171,19 +170,21 @@ function ClientPortal({ token }: { token: string }) {
         </>
       ) : (
         <>
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-3 flex items-center justify-between gap-2">
             <button
               onClick={() => setWeekCursor((d) => addDays(d, -7))}
-              className="rounded-lg border border-neutral-300 px-3 py-1 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              className={navButtonClass}
+              aria-label="Semana anterior"
             >
-              ← Anterior
+              ‹
             </button>
-            <span className="text-sm font-medium">{weekRangeLabel(weekCursor)}</span>
+            <span className="text-base font-semibold">{weekRangeLabel(weekCursor)}</span>
             <button
               onClick={() => setWeekCursor((d) => addDays(d, 7))}
-              className="rounded-lg border border-neutral-300 px-3 py-1 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              className={navButtonClass}
+              aria-label="Próxima semana"
             >
-              Próximo →
+              ›
             </button>
           </div>
 

@@ -6,7 +6,9 @@ export function FormatBadge({ format }: { format: PostFormat | null }) {
   const label = format ? FORMAT_LABEL[format] : "Post";
 
   return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${className}`}>
+    <span
+      className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${className}`}
+    >
       {label}
     </span>
   );

@@ -68,14 +68,19 @@ export function PostModal({
   }
 
   return (
+    // No celular vira uma "gaveta" colada embaixo (mais fácil de alcançar
+    // com o polegar); no desktop, um modal centralizado.
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 dark:bg-neutral-900"
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl sm:p-5 dark:bg-neutral-900"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* "Puxador" da gaveta, só no celular */}
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-neutral-300 sm:hidden dark:bg-neutral-700" />
+
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <FormatBadge format={post.format} />
@@ -83,7 +88,7 @@ export function PostModal({
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+            className="-mr-1 -mt-1 shrink-0 rounded-full p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
             aria-label="Fechar"
           >
             ✕
@@ -113,26 +118,28 @@ export function PostModal({
         </div>
 
         {post.caption && (
-          <p className="mt-4 whitespace-pre-wrap text-sm text-neutral-700 dark:text-neutral-300">
+          <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
             {post.caption}
           </p>
         )}
 
         {canAct && (
-          <div className="mt-5 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+          // Os botões ficam colados no rodapé da gaveta enquanto o resto
+          // rola, pra não sumirem numa legenda longa.
+          <div className="sticky bottom-0 -mx-4 mt-5 border-t border-neutral-200 bg-white px-4 pb-1 pt-4 sm:-mx-5 sm:px-5 dark:border-neutral-800 dark:bg-neutral-900">
             {mode === "idle" ? (
               <div className="flex gap-2">
                 <button
                   onClick={handleApprove}
                   disabled={submitting}
-                  className="flex-1 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700 disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700 active:bg-green-800 disabled:opacity-50"
                 >
                   ✅ Aprovar
                 </button>
                 <button
                   onClick={() => setMode("requesting")}
                   disabled={submitting}
-                  className="flex-1 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 active:bg-amber-700 disabled:opacity-50"
                 >
                   🔁 Pedir alteração
                 </button>
@@ -144,20 +151,21 @@ export function PostModal({
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="O que precisa ser ajustado?"
                   rows={3}
-                  className="w-full rounded-lg border border-neutral-300 p-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+                  className="w-full rounded-xl border border-neutral-300 p-3 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+                  autoFocus
                 />
                 <div className="mt-2 flex gap-2">
                   <button
                     onClick={handleRequestChange}
                     disabled={submitting}
-                    className="flex-1 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-50"
+                    className="flex-1 rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 active:bg-amber-700 disabled:opacity-50"
                   >
                     Enviar solicitação
                   </button>
                   <button
                     onClick={() => setMode("idle")}
                     disabled={submitting}
-                    className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                    className="rounded-xl border border-neutral-300 px-4 py-3 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
                   >
                     Cancelar
                   </button>

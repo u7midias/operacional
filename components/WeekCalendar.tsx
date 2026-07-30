@@ -1,6 +1,6 @@
 "use client";
 
-import { canOpenPost } from "@/lib/statusLabels";
+import { STATUS_DOT_CLASS, canOpenPost } from "@/lib/statusLabels";
 import type { ClientPost } from "@/lib/types";
 import { FormatBadge } from "./FormatBadge";
 import { StatusBadge } from "./StatusBadge";
@@ -53,25 +53,40 @@ export function WeekCalendar({
         return (
           <div
             key={key}
-            className={`rounded-lg border border-neutral-200 p-3 dark:border-neutral-800 ${
-              isToday ? "ring-1 ring-neutral-400" : ""
+            className={`overflow-hidden rounded-xl border ${
+              isToday
+                ? "border-neutral-900 dark:border-white"
+                : "border-neutral-200 dark:border-neutral-800"
             }`}
           >
-            <div className="mb-2 flex items-baseline justify-between">
+            <div
+              className={`flex items-baseline gap-2 px-3 py-2 ${
+                isToday
+                  ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                  : "bg-neutral-50 dark:bg-neutral-900"
+              }`}
+            >
+              <span className="text-lg font-bold leading-none">{date.getDate()}</span>
               <span className="text-sm font-medium">{WEEKDAY_LABELS[i]}</span>
-              <span className="text-xs text-neutral-500">{date.getDate()}</span>
+              {isToday && <span className="ml-auto text-[10px] font-semibold uppercase">hoje</span>}
             </div>
 
             {dayPosts.length === 0 ? (
-              <p className="text-xs text-neutral-400">Sem posts</p>
+              <p className="px-3 py-3 text-xs text-neutral-400">Nenhum post neste dia</p>
             ) : (
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col divide-y divide-neutral-100 dark:divide-neutral-800">
                 {dayPosts.map((post) => {
                   const openable = canOpenPost(post.status);
                   const content = (
                     <>
+                      <span
+                        className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT_CLASS[post.status]}`}
+                      />
                       <FormatBadge format={post.format} />
-                      <StatusBadge status={post.status} />
+                      <span className="ml-auto flex items-center gap-1.5">
+                        <StatusBadge status={post.status} />
+                        {openable && <span className="text-neutral-300">›</span>}
+                      </span>
                     </>
                   );
 
@@ -81,15 +96,12 @@ export function WeekCalendar({
                     <button
                       key={post.id}
                       onClick={() => onSelectPost(post)}
-                      className="flex items-center justify-between gap-2 rounded-lg bg-neutral-50 px-2.5 py-2 text-left hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-neutral-50 active:bg-neutral-100 dark:hover:bg-neutral-900"
                     >
                       {content}
                     </button>
                   ) : (
-                    <div
-                      key={post.id}
-                      className="flex items-center justify-between gap-2 rounded-lg bg-neutral-50 px-2.5 py-2 opacity-60 dark:bg-neutral-800"
-                    >
+                    <div key={post.id} className="flex items-center gap-2 px-3 py-2.5 opacity-50">
                       {content}
                     </div>
                   );
