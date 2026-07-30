@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [lastCreatedUrl, setLastCreatedUrl] = useState<string | null>(null);
+  const [lastImportedCount, setLastImportedCount] = useState<number | null>(null);
   const [lastWarning, setLastWarning] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
@@ -71,6 +72,7 @@ export default function AdminPage() {
     if (!secret) return;
     setFormError(null);
     setLastCreatedUrl(null);
+    setLastImportedCount(null);
     setLastWarning(null);
 
     if (!name.trim() || !boardCode.trim()) {
@@ -80,11 +82,12 @@ export default function AdminPage() {
 
     setSubmitting(true);
     try {
-      const { client, webhookWarning } = await adminCreateClient(secret, {
+      const { client, importedCount, webhookWarning } = await adminCreateClient(secret, {
         name: name.trim(),
         trelloBoardShortLink: boardCode.trim(),
       });
       setLastCreatedUrl(portalUrl(client.access_token));
+      setLastImportedCount(importedCount);
       setLastWarning(webhookWarning);
       setName("");
       setBoardCode("");
@@ -117,7 +120,7 @@ export default function AdminPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            tryLogin(passwordInput);
+            tryLogin(passwordInput.trim());
           }}
           className="w-full max-w-xs"
         >
@@ -181,6 +184,12 @@ export default function AdminPage() {
       {lastCreatedUrl && (
         <div className="mt-4 rounded-lg border border-green-300 bg-green-50 p-3 text-sm dark:border-green-800 dark:bg-green-950">
           <p className="font-medium text-green-800 dark:text-green-200">Cliente cadastrado!</p>
+          {lastImportedCount !== null && (
+            <p className="mt-1 text-green-700 dark:text-green-300">
+              {lastImportedCount} post{lastImportedCount === 1 ? "" : "s"} importado
+              {lastImportedCount === 1 ? "" : "s"} do Trello.
+            </p>
+          )}
           <p className="mt-1 break-all text-green-700 dark:text-green-300">{lastCreatedUrl}</p>
           {lastWarning && (
             <p className="mt-2 text-amber-700 dark:text-amber-400">{lastWarning}</p>
