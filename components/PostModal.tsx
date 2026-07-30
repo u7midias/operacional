@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { decidePost } from "@/lib/api";
+import { decidePost, mediaUrl } from "@/lib/api";
 import type { ClientPost } from "@/lib/types";
 import { FormatBadge } from "./FormatBadge";
 import { MediaCarousel } from "./MediaCarousel";
@@ -32,6 +32,10 @@ export function PostModal({
   const canAct = post.status === "em_aprovacao";
   const videoUrl = post.media_type === "video" ? post.media_urls[0] : undefined;
   const embedUrl = videoUrl ? driveEmbedUrl(videoUrl) : null;
+
+  // Imagens passam pela função get-media (as URLs cruas do Trello exigem
+  // login no board); vídeos são links do Drive, que já são públicos.
+  const imageUrls = post.media_urls.map((_, i) => mediaUrl(token, post.id, i));
 
   async function handleApprove() {
     setSubmitting(true);
@@ -87,8 +91,8 @@ export function PostModal({
         </div>
 
         <div className="mt-4">
-          {post.media_type === "imagem" && post.media_urls.length > 0 && (
-            <MediaCarousel urls={post.media_urls} />
+          {post.media_type === "imagem" && imageUrls.length > 0 && (
+            <MediaCarousel urls={imageUrls} />
           )}
           {post.media_type === "video" && embedUrl && (
             <iframe src={embedUrl} className="aspect-video w-full rounded-lg" allow="autoplay" />

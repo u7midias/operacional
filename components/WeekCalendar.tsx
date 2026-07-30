@@ -1,5 +1,6 @@
 "use client";
 
+import { canOpenPost } from "@/lib/statusLabels";
 import type { ClientPost } from "@/lib/types";
 import { FormatBadge } from "./FormatBadge";
 import { StatusBadge } from "./StatusBadge";
@@ -65,16 +66,34 @@ export function WeekCalendar({
               <p className="text-xs text-neutral-400">Sem posts</p>
             ) : (
               <div className="flex flex-col gap-1.5">
-                {dayPosts.map((post) => (
-                  <button
-                    key={post.id}
-                    onClick={() => onSelectPost(post)}
-                    className="flex items-center justify-between gap-2 rounded-lg bg-neutral-50 px-2.5 py-2 text-left hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700"
-                  >
-                    <FormatBadge format={post.format} />
-                    <StatusBadge status={post.status} />
-                  </button>
-                ))}
+                {dayPosts.map((post) => {
+                  const openable = canOpenPost(post.status);
+                  const content = (
+                    <>
+                      <FormatBadge format={post.format} />
+                      <StatusBadge status={post.status} />
+                    </>
+                  );
+
+                  // Posts ainda em produção interna aparecem (o cliente
+                  // acompanha o planejamento) mas não abrem.
+                  return openable ? (
+                    <button
+                      key={post.id}
+                      onClick={() => onSelectPost(post)}
+                      className="flex items-center justify-between gap-2 rounded-lg bg-neutral-50 px-2.5 py-2 text-left hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+                    >
+                      {content}
+                    </button>
+                  ) : (
+                    <div
+                      key={post.id}
+                      className="flex items-center justify-between gap-2 rounded-lg bg-neutral-50 px-2.5 py-2 opacity-60 dark:bg-neutral-800"
+                    >
+                      {content}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

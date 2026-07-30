@@ -1,6 +1,6 @@
 "use client";
 
-import { STATUS_DOT_CLASS } from "@/lib/statusLabels";
+import { STATUS_DOT_CLASS, STATUS_LABEL, canOpenPost } from "@/lib/statusLabels";
 import type { ClientPost } from "@/lib/types";
 import { FormatBadge } from "./FormatBadge";
 
@@ -70,16 +70,38 @@ export function MonthCalendar({
           >
             <div className="text-xs text-neutral-500">{date.getDate()}</div>
             <div className="mt-1 flex flex-col gap-1">
-              {dayPosts.map((post) => (
-                <button
-                  key={post.id}
-                  onClick={() => onSelectPost(post)}
-                  className="flex items-center gap-1 rounded px-0.5 py-0.5 text-left transition-opacity hover:opacity-80"
-                >
-                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT_CLASS[post.status]}`} />
-                  <FormatBadge format={post.format} />
-                </button>
-              ))}
+              {dayPosts.map((post) => {
+                const openable = canOpenPost(post.status);
+                const content = (
+                  <>
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT_CLASS[post.status]}`}
+                    />
+                    <FormatBadge format={post.format} />
+                  </>
+                );
+
+                // Posts ainda em produção interna aparecem (o cliente
+                // acompanha o planejamento) mas não abrem.
+                return openable ? (
+                  <button
+                    key={post.id}
+                    onClick={() => onSelectPost(post)}
+                    title={STATUS_LABEL[post.status]}
+                    className="flex items-center gap-1 rounded px-0.5 py-0.5 text-left transition-opacity hover:opacity-80"
+                  >
+                    {content}
+                  </button>
+                ) : (
+                  <div
+                    key={post.id}
+                    title={STATUS_LABEL[post.status]}
+                    className="flex items-center gap-1 rounded px-0.5 py-0.5 opacity-60"
+                  >
+                    {content}
+                  </div>
+                );
+              })}
             </div>
           </div>
         );

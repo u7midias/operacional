@@ -28,6 +28,16 @@ export function fetchPosts(token: string): Promise<GetPostsResponse> {
   return postJson<GetPostsResponse>("get-posts", { token });
 }
 
+// As imagens vêm sempre por aqui, nunca direto do Trello: as URLs de anexo
+// do Trello exigem login no board, então quebrariam pro cliente.
+export function mediaUrl(token: string, postId: string, index: number): string {
+  const url = new URL(functionsUrl("get-media"));
+  url.searchParams.set("token", token);
+  url.searchParams.set("post_id", postId);
+  url.searchParams.set("index", String(index));
+  return url.toString();
+}
+
 export function decidePost(params: {
   token: string;
   postId: string;

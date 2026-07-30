@@ -21,6 +21,7 @@ supabase/functions/
   sync-trello/            Recebe webhook do Trello -> upsert em `posts`
   approve-post/            Grava a decisão do cliente -> move card + comenta no Trello
   get-posts/               Única leitura pública (valida token) para o portal do cliente
+  get-media/               Serve as imagens do Trello (que exigem auth) para o cliente
   admin-clients/           Lista/cadastra clientes e cria o webhook do Trello sozinho
 ```
 
@@ -43,7 +44,8 @@ do cliente manualmente antes de qualquer leitura/escrita.
    - `TRELLO_API_KEY`
    - `TRELLO_API_TOKEN`
    - `ADMIN_SECRET` — uma senha à sua escolha, usada só pelo painel `/admin`.
-4. Deploy das funções: `supabase functions deploy sync-trello approve-post get-posts admin-clients`.
+4. Deploy das funções:
+   `supabase functions deploy sync-trello approve-post get-posts get-media admin-clients`.
 
 ### 2. Trello
 
@@ -99,6 +101,15 @@ sem chamar API do Trello na mão:
 - `sync-trello` resincroniza o card inteiro a cada evento do webhook (não
   tenta interpretar o payload incremental), então cobre qualquer mudança
   (lista, legenda, anexo, due date) com uma única lógica.
+- O portal nunca aponta `<img>` direto pra URL do anexo no Trello: essas
+  URLs exigem autenticação e dão 401 pra quem não tem acesso ao board (ou
+  seja, todo cliente). As imagens passam por `get-media`, que valida o
+  token do cliente e busca o anexo com as credenciais da agência.
+- O cliente vê os posts de todas as etapas (pra acompanhar o planejamento),
+  mas só consegue abrir os que estão de "Em aprovação" pra frente — a regra
+  fica em `canOpenPost` (`lib/statusLabels.ts`).
+- Cards sem data de vencimento no Trello não aparecem no portal, já que a
+  visão do cliente é um calendário.
 - Não há verificação de assinatura do webhook do Trello (`X-Trello-Webhook`)
   nesta primeira versão — o endpoint aceita qualquer POST bem formado. Para
   produção, considere validar o HMAC contra o Client Secret do Trello.

@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.admin-clients]
 verify_jwt = false
+
+[functions.get-media]
+verify_jwt = false

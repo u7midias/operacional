@@ -30,6 +30,15 @@ export const STATUS_DOT_CLASS: Record<PostStatus, string> = {
   publicado: "bg-green-500",
 };
 
+// Enquanto o post está em produção interna o cliente vê que ele existe e em
+// que etapa está, mas não abre o conteúdo — só a partir de "Em aprovação",
+// quando já há uma peça pronta pra ele avaliar.
+const OPENABLE_STATUSES: PostStatus[] = ["em_aprovacao", "em_agendamento", "publicado"];
+
+export function canOpenPost(status: PostStatus): boolean {
+  return OPENABLE_STATUSES.includes(status);
+}
+
 export const FORMAT_LABEL: Record<string, string> = {
   feed: "Feed",
   story: "Story",

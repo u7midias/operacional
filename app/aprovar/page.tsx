@@ -6,6 +6,7 @@ import { fetchPosts } from "@/lib/api";
 import type { ClientPost } from "@/lib/types";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { PostModal } from "@/components/PostModal";
+import { StatusLegend } from "@/components/StatusLegend";
 import { WeekCalendar, startOfWeek } from "@/components/WeekCalendar";
 
 const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
@@ -117,7 +118,9 @@ function ClientPortal({ token }: { token: string }) {
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">{clientName}</h1>
-          <p className="text-sm text-neutral-500">Calendário de posts</p>
+          <p className="text-sm text-neutral-500">
+            Calendário de posts — toque nos que estão em aprovação para avaliar.
+          </p>
         </div>
       </header>
 
@@ -187,6 +190,8 @@ function ClientPortal({ token }: { token: string }) {
           <WeekCalendar weekCursor={weekCursor} posts={postsInWeek} onSelectPost={setSelectedPost} />
         </>
       )}
+
+      <StatusLegend />
 
       {selectedPost && (
         <PostModal
