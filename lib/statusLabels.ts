@@ -1,17 +1,33 @@
 import type { PostStatus } from "./types";
 
 export const STATUS_LABEL: Record<PostStatus, string> = {
+  criacao_legenda: "Criação de legenda",
   em_producao: "Em produção",
-  aguardando_aprovacao: "Aguardando sua aprovação",
-  aprovado: "Aprovado, aguardando publicação",
+  em_revisao: "Em revisão",
+  em_aprovacao: "Em aprovação",
+  em_alteracao: "Em Alteração",
+  em_agendamento: "Em agendamento",
   publicado: "Publicado",
 };
 
 export const STATUS_BADGE_CLASS: Record<PostStatus, string> = {
-  em_producao: "bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200",
-  aguardando_aprovacao: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
-  aprovado: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  criacao_legenda: "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
+  em_producao: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  em_revisao: "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200",
+  em_aprovacao: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+  em_alteracao: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  em_agendamento: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200",
   publicado: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+};
+
+export const STATUS_DOT_CLASS: Record<PostStatus, string> = {
+  criacao_legenda: "bg-slate-400",
+  em_producao: "bg-blue-500",
+  em_revisao: "bg-violet-500",
+  em_aprovacao: "bg-amber-500",
+  em_alteracao: "bg-orange-500",
+  em_agendamento: "bg-teal-500",
+  publicado: "bg-green-500",
 };
 
 export const FORMAT_LABEL: Record<string, string> = {

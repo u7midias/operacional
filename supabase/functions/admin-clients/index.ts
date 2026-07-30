@@ -17,7 +17,14 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-type PostStatus = "em_producao" | "aguardando_aprovacao" | "aprovado" | "publicado";
+type PostStatus =
+  | "criacao_legenda"
+  | "em_producao"
+  | "em_revisao"
+  | "em_aprovacao"
+  | "em_alteracao"
+  | "em_agendamento"
+  | "publicado";
 type PostFormat = "feed" | "story" | "reels";
 type MediaType = "imagem" | "video";
 
@@ -134,11 +141,12 @@ function normalize(value: string): string {
 
 const LIST_NAME_TO_STATUS: Record<string, PostStatus> = {
   "informacoes": "em_producao",
-  "criacao de legenda": "em_producao",
+  "criacao de legenda": "criacao_legenda",
   "producao de design/video": "em_producao",
-  "revisao geral": "em_producao",
-  "aprovacao": "aguardando_aprovacao",
-  "agendar": "aprovado",
+  "revisao geral": "em_revisao",
+  "aprovacao": "em_aprovacao",
+  "alteracao": "em_alteracao",
+  "agendamento": "em_agendamento",
   "concluido": "publicado",
 };
 

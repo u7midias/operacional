@@ -1,5 +1,6 @@
 "use client";
 
+import { STATUS_DOT_CLASS } from "@/lib/statusLabels";
 import type { ClientPost } from "@/lib/types";
 import { FormatBadge } from "./FormatBadge";
 
@@ -24,13 +25,6 @@ function buildCalendarCells(monthCursor: Date): (Date | null)[] {
   while (cells.length % 7 !== 0) cells.push(null);
   return cells;
 }
-
-const STATUS_DOT_CLASS: Record<ClientPost["status"], string> = {
-  em_producao: "bg-neutral-400",
-  aguardando_aprovacao: "bg-amber-500",
-  aprovado: "bg-blue-500",
-  publicado: "bg-green-500",
-};
 
 export function MonthCalendar({
   monthCursor,

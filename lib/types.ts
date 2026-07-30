@@ -1,4 +1,11 @@
-export type PostStatus = "em_producao" | "aguardando_aprovacao" | "aprovado" | "publicado";
+export type PostStatus =
+  | "criacao_legenda"
+  | "em_producao"
+  | "em_revisao"
+  | "em_aprovacao"
+  | "em_alteracao"
+  | "em_agendamento"
+  | "publicado";
 export type PostFormat = "feed" | "story" | "reels";
 export type MediaType = "imagem" | "video";
 

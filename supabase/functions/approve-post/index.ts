@@ -83,13 +83,13 @@ async function commentOnCard(cardId: string, text: string): Promise<void> {
 }
 
 const TARGET_LIST_BY_ACTION = {
-  aprovado: "Agendar",
-  alteracao_solicitada: "Revisão Geral",
+  aprovado: "Agendamento",
+  alteracao_solicitada: "Alteração",
 } as const;
 
 const NEW_STATUS_BY_ACTION = {
-  aprovado: "aprovado",
-  alteracao_solicitada: "em_producao",
+  aprovado: "em_agendamento",
+  alteracao_solicitada: "em_alteracao",
 } as const;
 
 Deno.serve(async (req) => {
@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Post não encontrado." }, 404);
   }
 
-  if (post.status !== "aguardando_aprovacao") {
+  if (post.status !== "em_aprovacao") {
     return jsonResponse({ error: "Este post não está aguardando aprovação." }, 409);
   }
 

@@ -29,7 +29,7 @@ export function PostModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canAct = post.status === "aguardando_aprovacao";
+  const canAct = post.status === "em_aprovacao";
   const videoUrl = post.media_type === "video" ? post.media_urls[0] : undefined;
   const embedUrl = videoUrl ? driveEmbedUrl(videoUrl) : null;
 
@@ -38,7 +38,7 @@ export function PostModal({
     setError(null);
     try {
       await decidePost({ token, postId: post.id, action: "aprovado" });
-      onDecided(post.id, "aprovado");
+      onDecided(post.id, "em_agendamento");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao aprovar.");
     } finally {
@@ -55,7 +55,7 @@ export function PostModal({
     setError(null);
     try {
       await decidePost({ token, postId: post.id, action: "alteracao_solicitada", comment });
-      onDecided(post.id, "em_producao");
+      onDecided(post.id, "em_alteracao");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao enviar solicitação.");
     } finally {

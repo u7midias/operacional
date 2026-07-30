@@ -87,11 +87,15 @@ sem chamar API do Trello na mão:
 
 ## Observações
 
-- As listas internas do Trello (`Informações`, `Criação de Legenda`,
-  `Produção de Design/Vídeo`, `Revisão Geral`, `Aprovação`, `Agendar`,
-  `Concluído`) precisam existir com esses nomes exatos em cada board — é
-  como `sync-trello` e `approve-post` mapeiam lista ↔ status e resolvem o
-  `idList` de destino ao mover um card.
+- As listas internas do Trello (`Criação de Legenda`,
+  `Produção de Design/Vídeo`, `Revisão Geral`, `Aprovação`, `Alteração`,
+  `Agendamento`, `Concluído`) precisam existir com esses nomes exatos em
+  cada board — é como `sync-trello` e `approve-post` mapeiam lista ↔ status
+  e resolvem o `idList` de destino ao mover um card. Uma lista `Informações`
+  também é aceita (cai em "Em produção"), mas não é obrigatória.
+- Status do post (`posts.status`) é `text` com um `check` constraint, não
+  um enum do Postgres — pensado assim de propósito, já que esse conjunto de
+  etapas mudou uma vez pra espelhar o Trello e é provável que mude de novo.
 - `sync-trello` resincroniza o card inteiro a cada evento do webhook (não
   tenta interpretar o payload incremental), então cobre qualquer mudança
   (lista, legenda, anexo, due date) com uma única lógica.
