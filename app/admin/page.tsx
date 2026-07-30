@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { adminCreateClient, adminListClients } from "@/lib/api";
+import { adminCreateClient, adminDeleteClient, adminListClients } from "@/lib/api";
 import type { AdminClient } from "@/lib/types";
 
 const SESSION_KEY = "u7_admin_secret";
@@ -28,6 +28,7 @@ export default function AdminPage() {
   const [lastImportedCount, setLastImportedCount] = useState<number | null>(null);
   const [lastWarning, setLastWarning] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(SESSION_KEY);
@@ -104,6 +105,25 @@ export default function AdminPage() {
       setCopiedToken(token);
       setTimeout(() => setCopiedToken(null), 1500);
     });
+  }
+
+  async function handleDelete(client: AdminClient) {
+    if (!secret) return;
+    const confirmed = window.confirm(
+      `Excluir "${client.name}"? Isso apaga o cliente e todos os posts dele. Não tem como desfazer.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingId(client.id);
+    setFormError(null);
+    try {
+      await adminDeleteClient(secret, client.id);
+      await refreshClients(secret);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Falha ao excluir cliente.");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   if (checkingAuth) {
@@ -215,12 +235,21 @@ export default function AdminPage() {
                 {client.is_active ? "Ativo" : "Inativo"} · board {client.trello_board_id}
               </p>
             </div>
-            <button
-              onClick={() => handleCopy(client.access_token)}
-              className="shrink-0 rounded-lg border border-neutral-300 px-3 py-1 text-xs hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-            >
-              {copiedToken === client.access_token ? "Copiado!" : "Copiar link"}
-            </button>
+            <div className="flex shrink-0 gap-2">
+              <button
+                onClick={() => handleCopy(client.access_token)}
+                className="rounded-lg border border-neutral-300 px-3 py-1 text-xs hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              >
+                {copiedToken === client.access_token ? "Copiado!" : "Copiar link"}
+              </button>
+              <button
+                onClick={() => handleDelete(client)}
+                disabled={deletingId === client.id}
+                className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+              >
+                {deletingId === client.id ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
           </div>
         ))}
       </div>

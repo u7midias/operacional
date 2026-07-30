@@ -42,7 +42,6 @@ interface TrelloCard {
   idList: string;
   idBoard: string;
   labels: TrelloLabel[];
-  attachments: TrelloAttachment[];
   list?: { id: string; name: string };
 }
 
@@ -78,8 +77,15 @@ async function trelloFetch(path: string, init?: RequestInit): Promise<Response> 
 
 async function getCard(cardId: string): Promise<TrelloCard> {
   const res = await trelloFetch(
-    `/cards/${cardId}?fields=name,desc,due,idList,idBoard&labels=true&attachments=true&list=true`,
+    `/cards/${cardId}?fields=name,desc,due,idList,idBoard&labels=true&list=true`,
   );
+  return await res.json();
+}
+
+// O campo "attachments" embutido no card às vezes vem incompleto (ex: só o
+// primeiro anexo de um carrossel). O endpoint dedicado devolve a lista real.
+async function getCardAttachments(cardId: string): Promise<TrelloAttachment[]> {
+  const res = await trelloFetch(`/cards/${cardId}/attachments`);
   return await res.json();
 }
 
@@ -139,7 +145,7 @@ function isImageAttachment(att: TrelloAttachment): boolean {
 // Um post pode ter várias imagens anexadas (carrossel) — nesse caso
 // devolvemos todas, na ordem em que foram anexadas no card.
 function extractMedia(
-  card: Pick<TrelloCard, "desc" | "attachments">,
+  card: { desc: string | null; attachments: TrelloAttachment[] },
 ): { mediaType: MediaType; mediaUrls: string[] } | null {
   const imageAttachments = (card.attachments ?? []).filter(isImageAttachment);
   if (imageAttachments.length > 0) {
@@ -212,7 +218,8 @@ Deno.serve(async (req) => {
   }
 
   const card = await getCard(cardId);
-  const media = extractMedia(card);
+  const attachments = await getCardAttachments(cardId);
+  const media = extractMedia({ desc: card.desc, attachments });
 
   const { error } = await supabase.from("posts").upsert(
     {

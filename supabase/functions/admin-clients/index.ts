@@ -47,7 +47,6 @@ interface TrelloCard {
   due: string | null;
   idList: string;
   labels: TrelloLabel[];
-  attachments: TrelloAttachment[];
 }
 
 interface TrelloList {
@@ -58,7 +57,7 @@ interface TrelloList {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-secret",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
 };
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -111,9 +110,35 @@ async function getBoardLists(boardFullId: string): Promise<TrelloList[]> {
 
 async function getBoardCards(boardFullId: string): Promise<TrelloCard[]> {
   const res = await trelloFetch(
-    `/boards/${boardFullId}/cards?filter=open&fields=desc,due,idList&labels=true&attachments=true`,
+    `/boards/${boardFullId}/cards?filter=open&fields=desc,due,idList&labels=true`,
   );
   return await res.json();
+}
+
+// O campo "attachments" embutido no card às vezes vem incompleto (ex: só o
+// primeiro anexo de um carrossel). O endpoint dedicado devolve a lista real.
+async function getCardAttachments(cardId: string): Promise<TrelloAttachment[]> {
+  const res = await trelloFetch(`/cards/${cardId}/attachments`);
+  return await res.json();
+}
+
+// Busca os anexos de vários cards em paralelo, mas com um limite de
+// concorrência pra não estourar o rate limit da API do Trello.
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
 }
 
 async function createTrelloWebhook(boardFullId: string, callbackUrl: string): Promise<void> {
@@ -178,7 +203,7 @@ function isImageAttachment(att: TrelloAttachment): boolean {
 // Um post pode ter várias imagens anexadas (carrossel) — nesse caso
 // devolvemos todas, na ordem em que foram anexadas no card.
 function extractMedia(
-  card: Pick<TrelloCard, "desc" | "attachments">,
+  card: { desc: string | null; attachments: TrelloAttachment[] },
 ): { mediaType: MediaType; mediaUrls: string[] } | null {
   const imageAttachments = (card.attachments ?? []).filter(isImageAttachment);
   if (imageAttachments.length > 0) {
@@ -208,9 +233,13 @@ async function backfillPosts(supabase: any, clientId: string, boardFullId: strin
 
   if (cards.length === 0) return 0;
 
+  const attachmentsByCardId = new Map(
+    (await mapWithConcurrency(cards, 5, async (card) => [card.id, await getCardAttachments(card.id)] as const)),
+  );
+
   const rows = cards.map((card) => {
     const listName = listNameById.get(card.idList) ?? null;
-    const media = extractMedia(card);
+    const media = extractMedia({ desc: card.desc, attachments: attachmentsByCardId.get(card.id) ?? [] });
     return {
       client_id: clientId,
       trello_card_id: card.id,
@@ -255,6 +284,25 @@ Deno.serve(async (req) => {
     }
 
     return jsonResponse({ clients: data ?? [] });
+  }
+
+  if (req.method === "DELETE") {
+    const clientId = new URL(req.url).searchParams.get("client_id");
+    if (!clientId) {
+      return jsonResponse({ error: "client_id é obrigatório." }, 400);
+    }
+
+    // `posts` referencia `clients` com "on delete cascade" (e `approvals`
+    // referencia `posts` do mesmo jeito), então apagar o cliente já limpa
+    // os posts e aprovações dele junto.
+    const { error } = await supabase.from("clients").delete().eq("id", clientId);
+
+    if (error) {
+      console.error("Falha ao excluir cliente:", error);
+      return jsonResponse({ error: "Falha ao excluir cliente." }, 500);
+    }
+
+    return jsonResponse({ ok: true });
   }
 
   if (req.method !== "POST") {

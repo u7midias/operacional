@@ -78,3 +78,19 @@ export async function adminCreateClient(
 
   return data as { client: AdminClient; importedCount: number; webhookWarning: string | null };
 }
+
+export async function adminDeleteClient(adminSecret: string, clientId: string): Promise<void> {
+  const url = new URL(functionsUrl("admin-clients"));
+  url.searchParams.set("client_id", clientId);
+
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: { "x-admin-secret": adminSecret },
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(data?.error ?? `Erro inesperado (${res.status}).`);
+  }
+}
