@@ -27,6 +27,7 @@ export default function AdminPage() {
   const [lastCreatedUrl, setLastCreatedUrl] = useState<string | null>(null);
   const [lastImportedCount, setLastImportedCount] = useState<number | null>(null);
   const [lastWarning, setLastWarning] = useState<string | null>(null);
+  const [lastUnmappedLists, setLastUnmappedLists] = useState<string[]>([]);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -75,6 +76,7 @@ export default function AdminPage() {
     setLastCreatedUrl(null);
     setLastImportedCount(null);
     setLastWarning(null);
+    setLastUnmappedLists([]);
 
     if (!name.trim() || !boardCode.trim()) {
       setFormError("Preencha o nome do cliente e o código do board.");
@@ -83,13 +85,14 @@ export default function AdminPage() {
 
     setSubmitting(true);
     try {
-      const { client, importedCount, webhookWarning } = await adminCreateClient(secret, {
+      const { client, importedCount, webhookWarning, unmappedLists } = await adminCreateClient(secret, {
         name: name.trim(),
         trelloBoardShortLink: boardCode.trim(),
       });
       setLastCreatedUrl(portalUrl(client.access_token));
       setLastImportedCount(importedCount);
       setLastWarning(webhookWarning);
+      setLastUnmappedLists(unmappedLists ?? []);
       setName("");
       setBoardCode("");
       await refreshClients(secret);
@@ -213,6 +216,12 @@ export default function AdminPage() {
           <p className="mt-1 break-all text-green-700 dark:text-green-300">{lastCreatedUrl}</p>
           {lastWarning && (
             <p className="mt-2 text-amber-700 dark:text-amber-400">{lastWarning}</p>
+          )}
+          {lastUnmappedLists.length > 0 && (
+            <p className="mt-2 text-amber-700 dark:text-amber-400">
+              Estas listas do board não correspondem a nenhuma etapa, então os posts
+              delas aparecem como &quot;Em produção&quot;: {lastUnmappedLists.join(", ")}.
+            </p>
           )}
         </div>
       )}

@@ -121,21 +121,33 @@ function normalize(value: string): string {
   return value.normalize("NFD").replace(COMBINING_DIACRITICS_RE, "").trim().toLowerCase();
 }
 
-// Listas internas do Trello -> status mostrado ao cliente
-const LIST_NAME_TO_STATUS: Record<string, PostStatus> = {
-  "informacoes": "em_producao",
-  "criacao de legenda": "criacao_legenda",
-  "producao de design/video": "em_producao",
-  "revisao geral": "em_revisao",
-  "aprovacao": "em_aprovacao",
-  "alteracao": "em_alteracao",
-  "agendamento": "em_agendamento",
-  "concluido": "publicado",
-};
+// Listas internas do Trello -> status mostrado ao cliente.
+//
+// A comparação é por palavra-chave, não por nome exato: na prática os
+// boards têm variações ("Concluído ✅", "CONCLUÍDOS", "Aprovação do
+// cliente"), e exigir o nome exato fazia a lista cair no padrão
+// "em produção" sem ninguém perceber. A ordem importa — vale a primeira
+// palavra-chave encontrada.
+const LIST_KEYWORD_TO_STATUS: [string, PostStatus][] = [
+  ["legenda", "criacao_legenda"],
+  ["aprova", "em_aprovacao"],
+  ["alterac", "em_alteracao"],
+  ["revis", "em_revisao"],
+  ["agend", "em_agendamento"],
+  ["conclu", "publicado"],
+  ["public", "publicado"],
+  ["design", "em_producao"],
+  ["produc", "em_producao"],
+  ["informac", "em_producao"],
+];
 
-function mapListNameToStatus(listName: string | null | undefined): PostStatus {
-  if (!listName) return "em_producao";
-  return LIST_NAME_TO_STATUS[normalize(listName)] ?? "em_producao";
+function mapListNameToStatus(listName: string | null | undefined): PostStatus | null {
+  if (!listName) return null;
+  const normalized = normalize(listName);
+  for (const [keyword, status] of LIST_KEYWORD_TO_STATUS) {
+    if (normalized.includes(keyword)) return status;
+  }
+  return null;
 }
 
 const FORMAT_LABELS: Record<string, PostFormat> = {
@@ -242,18 +254,32 @@ Deno.serve(async (req) => {
   const labelNameById = new Map(boardLabels.map((label) => [label.id, label.name ?? ""]));
   const labelNames = (card.idLabels ?? []).map((id) => labelNameById.get(id) ?? "");
 
+  const listName = card.list?.name ?? null;
+  const mappedStatus = mapListNameToStatus(listName);
+
+  // Uma lista que não bate com nenhuma etapa vira "em produção" por falta de
+  // opção melhor, mas isso fica registrado: senão um nome de lista fora do
+  // padrão faz o post aparecer na etapa errada sem deixar rastro.
+  if (!mappedStatus) {
+    await supabase.from("trello_sync_log").insert({
+      trello_card_id: card.id,
+      event_type: "sync-trello:lista-nao-reconhecida",
+      payload: { listName },
+    });
+  }
+
   const { error } = await supabase.from("posts").upsert(
     {
       client_id: client.id,
       trello_card_id: card.id,
       trello_list_id: card.idList,
-      trello_list_name: card.list?.name ?? null,
+      trello_list_name: listName,
       format: extractFormat(labelNames),
       caption: card.desc ?? null,
       media_type: media?.mediaType ?? null,
       media_urls: media?.mediaUrls ?? [],
       scheduled_date: card.due ? card.due.slice(0, 10) : null,
-      status: mapListNameToStatus(card.list?.name),
+      status: mappedStatus ?? "em_producao",
     },
     { onConflict: "trello_card_id" },
   );

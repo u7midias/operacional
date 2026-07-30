@@ -201,20 +201,33 @@ function normalize(value: string): string {
   return value.normalize("NFD").replace(COMBINING_DIACRITICS_RE, "").trim().toLowerCase();
 }
 
-const LIST_NAME_TO_STATUS: Record<string, PostStatus> = {
-  "informacoes": "em_producao",
-  "criacao de legenda": "criacao_legenda",
-  "producao de design/video": "em_producao",
-  "revisao geral": "em_revisao",
-  "aprovacao": "em_aprovacao",
-  "alteracao": "em_alteracao",
-  "agendamento": "em_agendamento",
-  "concluido": "publicado",
-};
+// Listas internas do Trello -> status mostrado ao cliente.
+//
+// A comparação é por palavra-chave, não por nome exato: na prática os
+// boards têm variações ("Concluído ✅", "CONCLUÍDOS", "Aprovação do
+// cliente"), e exigir o nome exato fazia a lista cair no padrão
+// "em produção" sem ninguém perceber. A ordem importa — vale a primeira
+// palavra-chave encontrada.
+const LIST_KEYWORD_TO_STATUS: [string, PostStatus][] = [
+  ["legenda", "criacao_legenda"],
+  ["aprova", "em_aprovacao"],
+  ["alterac", "em_alteracao"],
+  ["revis", "em_revisao"],
+  ["agend", "em_agendamento"],
+  ["conclu", "publicado"],
+  ["public", "publicado"],
+  ["design", "em_producao"],
+  ["produc", "em_producao"],
+  ["informac", "em_producao"],
+];
 
-function mapListNameToStatus(listName: string | null | undefined): PostStatus {
-  if (!listName) return "em_producao";
-  return LIST_NAME_TO_STATUS[normalize(listName)] ?? "em_producao";
+function mapListNameToStatus(listName: string | null | undefined): PostStatus | null {
+  if (!listName) return null;
+  const normalized = normalize(listName);
+  for (const [keyword, status] of LIST_KEYWORD_TO_STATUS) {
+    if (normalized.includes(keyword)) return status;
+  }
+  return null;
 }
 
 const FORMAT_LABELS: Record<string, PostFormat> = {
@@ -264,7 +277,11 @@ function extractMedia(
 }
 
 // deno-lint-ignore no-explicit-any
-async function backfillPosts(supabase: any, clientId: string, boardFullId: string): Promise<number> {
+async function backfillPosts(
+  supabase: any,
+  clientId: string,
+  boardFullId: string,
+): Promise<{ count: number; unmappedLists: string[] }> {
   const [lists, labels, cardIds] = await Promise.all([
     getBoardLists(boardFullId),
     getBoardLabels(boardFullId),
@@ -273,7 +290,14 @@ async function backfillPosts(supabase: any, clientId: string, boardFullId: strin
   const listNameById = new Map(lists.map((list) => [list.id, list.name]));
   const labelNameById = new Map(labels.map((label) => [label.id, label.name ?? ""]));
 
-  if (cardIds.length === 0) return 0;
+  // Listas do board que não correspondem a nenhuma etapa: os posts delas
+  // caem em "em produção" por falta de opção melhor, então vale avisar a
+  // equipe em vez de deixar o post aparecer na etapa errada em silêncio.
+  const unmappedLists = lists
+    .filter((list) => mapListNameToStatus(list.name) === null)
+    .map((list) => list.name);
+
+  if (cardIds.length === 0) return { count: 0, unmappedLists };
 
   // Cada card é buscado individualmente (detalhes + anexos) — os campos
   // aninhados na listagem em lote do board não são confiáveis.
@@ -296,14 +320,14 @@ async function backfillPosts(supabase: any, clientId: string, boardFullId: strin
       media_type: media?.mediaType ?? null,
       media_urls: media?.mediaUrls ?? [],
       scheduled_date: card.due ? card.due.slice(0, 10) : null,
-      status: mapListNameToStatus(listName),
+      status: mapListNameToStatus(listName) ?? "em_producao",
     };
   });
 
   const { error } = await supabase.from("posts").upsert(rows, { onConflict: "trello_card_id" });
   if (error) throw new Error(`Falha ao importar posts: ${error.message}`);
 
-  return rows.length;
+  return { count: rows.length, unmappedLists };
 }
 
 Deno.serve(async (req) => {
@@ -410,10 +434,13 @@ Deno.serve(async (req) => {
   let importedCount = 0;
   let webhookWarning: string | null = null;
   let boardFullId: string | null = null;
+  let unmappedLists: string[] = [];
 
   try {
     boardFullId = await getBoardFullId(shortLink);
-    importedCount = await backfillPosts(supabase, client.id, boardFullId);
+    const result = await backfillPosts(supabase, client.id, boardFullId);
+    importedCount = result.count;
+    unmappedLists = result.unmappedLists;
   } catch (backfillError) {
     console.error("Falha ao importar posts existentes:", backfillError);
     webhookWarning =
@@ -433,5 +460,5 @@ Deno.serve(async (req) => {
     }
   }
 
-  return jsonResponse({ client, importedCount, webhookWarning });
+  return jsonResponse({ client, importedCount, webhookWarning, unmappedLists });
 });
