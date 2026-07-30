@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  FORMAT_BADGE_CLASS,
-  FORMAT_BADGE_FALLBACK_CLASS,
   FORMAT_LABEL,
-  STATUS_BORDER_CLASS,
+  STATUS_BADGE_CLASS,
   STATUS_LABEL,
   canOpenPost,
 } from "@/lib/statusLabels";
@@ -40,18 +38,15 @@ function PostChip({
   onSelect: (post: ClientPost) => void;
 }) {
   const openable = canOpenPost(post.status);
-  const colorClass = post.format
-    ? FORMAT_BADGE_CLASS[post.format]
-    : FORMAT_BADGE_FALLBACK_CLASS;
   const label = post.format ? FORMAT_LABEL[post.format] : "Post";
 
   // O chip ocupa a largura da célula e corta o texto por dentro: numa grade
   // de 7 colunas no celular a célula tem ~45px, e um badge de largura
-  // natural vazava por cima da borda. O fundo indica o formato e a faixa da
-  // esquerda indica a etapa.
+  // natural vazava por cima da borda. A cor é a da etapa — a mesma da
+  // legenda — e o texto diz o formato.
   const className =
-    `block w-full truncate rounded-md border-l-[3px] px-1 py-0.5 text-center text-[10px] font-semibold leading-tight sm:text-xs ` +
-    `${colorClass} ${STATUS_BORDER_CLASS[post.status]}`;
+    `block w-full truncate rounded-md px-1 py-0.5 text-center text-[10px] font-semibold leading-tight sm:text-xs ` +
+    STATUS_BADGE_CLASS[post.status];
 
   // Posts ainda em produção interna aparecem (o cliente acompanha o
   // planejamento) mas não abrem.

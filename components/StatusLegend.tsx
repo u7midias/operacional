@@ -1,5 +1,5 @@
-import { FORMAT_BADGE_CLASS, FORMAT_LABEL, STATUS_DOT_CLASS, STATUS_LABEL } from "@/lib/statusLabels";
-import type { PostFormat, PostStatus } from "@/lib/types";
+import { STATUS_BADGE_CLASS, STATUS_LABEL } from "@/lib/statusLabels";
+import type { PostStatus } from "@/lib/types";
 
 // Ordem do pipeline, pra legenda ler como a linha do tempo do post.
 const STATUS_ORDER: PostStatus[] = [
@@ -12,8 +12,6 @@ const STATUS_ORDER: PostStatus[] = [
   "publicado",
 ];
 
-const FORMAT_ORDER: PostFormat[] = ["feed", "story", "reels"];
-
 export function StatusLegend() {
   return (
     // Recolhida por padrão: no celular ela ocuparia meia tela sem precisar.
@@ -23,27 +21,24 @@ export function StatusLegend() {
       </summary>
 
       <div className="px-3 pb-3">
-        <p className="mb-1.5 text-[11px] font-semibold text-neutral-400">Formato do post</p>
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {FORMAT_ORDER.map((format) => (
-            <span
-              key={format}
-              className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${FORMAT_BADGE_CLASS[format]}`}
-            >
-              {FORMAT_LABEL[format]}
-            </span>
-          ))}
-        </div>
-
-        <p className="mb-1.5 text-[11px] font-semibold text-neutral-400">Etapa</p>
-        <div className="flex flex-wrap gap-x-4 gap-y-2">
+        {/* Os mesmos chips do calendário, na mesma cor: a cor é sempre a
+            etapa, e o texto dentro do chip é o formato (Feed/Story/Reels). */}
+        <div className="flex flex-wrap gap-1.5">
           {STATUS_ORDER.map((status) => (
-            <span key={status} className="flex items-center gap-1.5 text-xs text-neutral-500">
-              <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT_CLASS[status]}`} />
+            <span
+              key={status}
+              className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${STATUS_BADGE_CLASS[status]}`}
+            >
               {STATUS_LABEL[status]}
             </span>
           ))}
         </div>
+
+        <p className="mt-3 text-[11px] leading-relaxed text-neutral-400">
+          A cor mostra em que etapa o post está. O texto dentro do quadradinho
+          diz o formato: Feed, Story ou Reels. Só dá pra abrir o post a partir
+          de &ldquo;Em aprovação&rdquo;.
+        </p>
       </div>
     </details>
   );
