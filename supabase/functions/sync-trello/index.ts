@@ -41,7 +41,7 @@ interface TrelloCard {
   due: string | null;
   idList: string;
   idBoard: string;
-  labels: TrelloLabel[];
+  idLabels: string[];
   list?: { id: string; name: string };
 }
 
@@ -85,8 +85,16 @@ async function trelloFetch(path: string, init?: RequestInit, attempt = 1): Promi
 
 async function getCard(cardId: string): Promise<TrelloCard> {
   const res = await trelloFetch(
-    `/cards/${cardId}?fields=name,desc,due,idList,idBoard&labels=true&list=true`,
+    `/cards/${cardId}?fields=name,desc,due,idList,idBoard,idLabels&list=true`,
   );
+  return await res.json();
+}
+
+// As etiquetas vêm do board e são cruzadas com o `idLabels` do card. Pedir
+// o campo `labels` embutido na resposta do card não funciona de forma
+// confiável (o Trello simplesmente não devolve o campo).
+async function getBoardLabels(boardId: string): Promise<TrelloLabel[]> {
+  const res = await trelloFetch(`/boards/${boardId}/labels?fields=name&limit=1000`);
   return await res.json();
 }
 
@@ -136,9 +144,9 @@ const FORMAT_LABELS: Record<string, PostFormat> = {
   reels: "reels",
 };
 
-function extractFormat(labels: TrelloLabel[]): PostFormat | null {
-  for (const label of labels ?? []) {
-    const match = FORMAT_LABELS[normalize(label.name ?? "")];
+function extractFormat(labelNames: string[]): PostFormat | null {
+  for (const labelName of labelNames) {
+    const match = FORMAT_LABELS[normalize(labelName)];
     if (match) return match;
   }
   return null;
@@ -225,9 +233,14 @@ Deno.serve(async (req) => {
     return new Response("ok", { status: 200 });
   }
 
-  const card = await getCard(cardId);
-  const attachments = await getCardAttachments(cardId);
+  const [card, attachments, boardLabels] = await Promise.all([
+    getCard(cardId),
+    getCardAttachments(cardId),
+    getBoardLabels(boardId),
+  ]);
   const media = extractMedia({ desc: card.desc, attachments });
+  const labelNameById = new Map(boardLabels.map((label) => [label.id, label.name ?? ""]));
+  const labelNames = (card.idLabels ?? []).map((id) => labelNameById.get(id) ?? "");
 
   const { error } = await supabase.from("posts").upsert(
     {
@@ -235,7 +248,7 @@ Deno.serve(async (req) => {
       trello_card_id: card.id,
       trello_list_id: card.idList,
       trello_list_name: card.list?.name ?? null,
-      format: extractFormat(card.labels ?? []),
+      format: extractFormat(labelNames),
       caption: card.desc ?? null,
       media_type: media?.mediaType ?? null,
       media_urls: media?.mediaUrls ?? [],
