@@ -26,6 +26,9 @@ function supabaseAdmin() {
   return createClient(url, serviceRoleKey, { auth: { persistSession: false } });
 }
 
+// Mesma lista de get-posts: etapas em que o cliente pode abrir o post.
+const OPENABLE_STATUSES = new Set(["em_aprovacao", "em_agendamento", "publicado"]);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -58,13 +61,15 @@ Deno.serve(async (req) => {
 
   const { data: post } = await supabase
     .from("posts")
-    .select("client_id, media_urls")
+    .select("client_id, media_urls, status")
     .eq("id", postId)
     .maybeSingle();
 
   // Só serve mídia de um post que pertence ao cliente daquele token — o
-  // token sozinho não dá acesso a qualquer imagem do banco.
-  if (!post || post.client_id !== client.id) {
+  // token sozinho não dá acesso a qualquer imagem do banco. E só a partir das
+  // etapas que o cliente pode abrir: peça em produção interna não sai daqui
+  // nem por URL montada na mão.
+  if (!post || post.client_id !== client.id || !OPENABLE_STATUSES.has(post.status)) {
     return new Response("Post não encontrado.", { status: 404, headers: corsHeaders });
   }
 

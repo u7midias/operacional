@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { adminCreateClient, adminDeleteClient, adminListClients } from "@/lib/api";
+import {
+  adminCreateClient,
+  adminDeleteClient,
+  adminListClients,
+  adminSyncClient,
+} from "@/lib/api";
 import type { AdminClient } from "@/lib/types";
 
 const SESSION_KEY = "u7_admin_secret";
@@ -30,6 +35,8 @@ export default function AdminPage() {
   const [lastUnmappedLists, setLastUnmappedLists] = useState<string[]>([]);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(SESSION_KEY);
@@ -108,6 +115,28 @@ export default function AdminPage() {
       setCopiedToken(token);
       setTimeout(() => setCopiedToken(null), 1500);
     });
+  }
+
+  async function handleSync(client: AdminClient) {
+    if (!secret) return;
+    setSyncingId(client.id);
+    setFormError(null);
+    setSyncResult(null);
+    try {
+      const { importedCount, removedCount } = await adminSyncClient(secret, client);
+      const removedPart =
+        removedCount > 0
+          ? ` ${removedCount} post${removedCount === 1 ? "" : "s"} que não ${
+              removedCount === 1 ? "existia" : "existiam"
+            } mais no Trello ${removedCount === 1 ? "foi removido" : "foram removidos"}.`
+          : " Nada fora do lugar.";
+      setSyncResult(`${client.name}: ${importedCount} post(s) no board.${removedPart}`);
+      await refreshClients(secret);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Falha ao sincronizar.");
+    } finally {
+      setSyncingId(null);
+    }
   }
 
   async function handleDelete(client: AdminClient) {
@@ -229,6 +258,16 @@ export default function AdminPage() {
       <h2 className="mb-2 mt-8 text-sm font-medium text-neutral-500">
         Clientes cadastrados {loadingClients && "(atualizando...)"}
       </h2>
+      <p className="mb-2 text-xs text-neutral-500">
+        &quot;Sincronizar&quot; relê o board no Trello: traz o que faltava e apaga do
+        portal os posts cujo card foi excluído ou arquivado.
+      </p>
+
+      {syncResult && (
+        <p className="mb-2 rounded-lg border border-green-300 bg-green-50 p-2 text-xs text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
+          {syncResult}
+        </p>
+      )}
       <div className="flex flex-col gap-2">
         {clients.length === 0 && (
           <p className="text-sm text-neutral-400">Nenhum cliente cadastrado ainda.</p>
@@ -236,20 +275,28 @@ export default function AdminPage() {
         {clients.map((client) => (
           <div
             key={client.id}
-            className="flex items-center justify-between gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-800"
+            className="flex flex-col gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between dark:border-neutral-800"
           >
-            <div>
-              <p className="font-medium">{client.name}</p>
-              <p className="text-xs text-neutral-500">
+            <div className="min-w-0">
+              <p className="truncate font-medium">{client.name}</p>
+              <p className="truncate text-xs text-neutral-500">
                 {client.is_active ? "Ativo" : "Inativo"} · board {client.trello_board_id}
               </p>
             </div>
-            <div className="flex shrink-0 gap-2">
+            {/* Três botões não cabem numa linha só num celular estreito. */}
+            <div className="flex flex-wrap gap-2 sm:shrink-0">
               <button
                 onClick={() => handleCopy(client.access_token)}
                 className="rounded-lg border border-neutral-300 px-3 py-1 text-xs hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
               >
                 {copiedToken === client.access_token ? "Copiado!" : "Copiar link"}
+              </button>
+              <button
+                onClick={() => handleSync(client)}
+                disabled={syncingId === client.id}
+                className="rounded-lg border border-neutral-300 px-3 py-1 text-xs hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              >
+                {syncingId === client.id ? "Sincronizando..." : "Sincronizar"}
               </button>
               <button
                 onClick={() => handleDelete(client)}

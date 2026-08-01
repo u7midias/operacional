@@ -42,7 +42,8 @@ interface TrelloCard {
   idList: string;
   idBoard: string;
   idLabels: string[];
-  list?: { id: string; name: string };
+  closed: boolean;
+  list?: { id: string; name: string; closed?: boolean };
 }
 
 function supabaseAdmin() {
@@ -83,11 +84,19 @@ async function trelloFetch(path: string, init?: RequestInit, attempt = 1): Promi
   return res;
 }
 
-async function getCard(cardId: string): Promise<TrelloCard> {
-  const res = await trelloFetch(
-    `/cards/${cardId}?fields=name,desc,due,idList,idBoard,idLabels&list=true`,
-  );
-  return await res.json();
+// Devolve null quando o card não existe mais (foi excluído no Trello). O
+// evento "deleteCard" chega aqui como qualquer outro, e nesse caso a API
+// responde 404 — não é erro, é a informação de que o post precisa sair.
+async function getCardOrNull(cardId: string): Promise<TrelloCard | null> {
+  try {
+    const res = await trelloFetch(
+      `/cards/${cardId}?fields=name,desc,due,idList,idBoard,idLabels,closed&list=true`,
+    );
+    return await res.json();
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("(404)")) return null;
+    throw err;
+  }
 }
 
 // As etiquetas vêm do board e são cruzadas com o `idLabels` do card. Pedir
@@ -245,8 +254,31 @@ Deno.serve(async (req) => {
     return new Response("ok", { status: 200 });
   }
 
-  const [card, attachments, boardLabels] = await Promise.all([
-    getCard(cardId),
+  // O card é buscado sozinho primeiro: se ele sumiu, buscar anexos dele daria
+  // 404 e derrubaria o resto do processamento.
+  const card = await getCardOrNull(cardId);
+
+  // Card excluído, arquivado ou movido pra outro board deixa de fazer parte do
+  // planejamento do cliente — sem isso o post ficava no banco pra sempre e
+  // continuava aparecendo no calendário sem ter card nenhum por trás.
+  //
+  // Arquivar a lista inteira conta igual: o card em si continua com
+  // closed=false, mas sumiu do board do mesmo jeito.
+  if (
+    !card ||
+    card.closed ||
+    card.list?.closed ||
+    (card.idBoard && card.idBoard !== boardId)
+  ) {
+    await supabase
+      .from("posts")
+      .delete()
+      .eq("client_id", client.id)
+      .eq("trello_card_id", cardId);
+    return new Response("ok", { status: 200 });
+  }
+
+  const [attachments, boardLabels] = await Promise.all([
     getCardAttachments(cardId),
     getBoardLabels(boardId),
   ]);

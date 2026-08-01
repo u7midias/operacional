@@ -5,8 +5,14 @@
 // 1. Importa todos os cards que já existem no board (backfill) — o webhook
 //    só avisa sobre mudanças futuras, então sem isso os posts já criados
 //    antes do cadastro nunca apareceriam no portal.
-// 2. Registra o webhook no Trello, pra manter tudo sincronizado dali em
+// 2. Remove os posts cujo card não existe mais no board (excluído ou
+//    arquivado no Trello).
+// 3. Registra o webhook no Trello, pra manter tudo sincronizado dali em
 //    diante.
+//
+// Como esse mesmo POST reaproveita um cliente já cadastrado, ele serve
+// também de "sincronizar agora": é o que o botão do painel usa pra colocar o
+// portal de volta em dia com o board.
 //
 // Protegido por uma senha simples (ADMIN_SECRET, configurada como secret da
 // função) enviada em toda chamada. Não é uma autenticação robusta, mas é
@@ -115,8 +121,12 @@ async function getBoardFullId(shortLinkOrId: string): Promise<string> {
   return data.id;
 }
 
+// Só as listas abertas: o que está em lista arquivada não aparece mais no
+// board, então também não entra no portal. O `filter=open` é o padrão da API,
+// mas fica explícito porque o backfill depende disso pra descartar os cards
+// de listas arquivadas.
 async function getBoardLists(boardFullId: string): Promise<TrelloList[]> {
-  const res = await trelloFetch(`/boards/${boardFullId}/lists?fields=name`);
+  const res = await trelloFetch(`/boards/${boardFullId}/lists?filter=open&fields=name`);
   return await res.json();
 }
 
@@ -276,12 +286,42 @@ function extractMedia(
   return null;
 }
 
+// Apaga os posts do cliente cujo card não está mais aberto no board (foi
+// excluído ou arquivado no Trello). Sem isso o registro fica órfão no banco e
+// o cliente continua vendo um post que não existe mais em lugar nenhum — o
+// webhook só avisa sobre mudanças, nunca sobre o que já sumiu antes.
+// deno-lint-ignore no-explicit-any
+async function removeStalePosts(
+  supabase: any,
+  clientId: string,
+  liveCardIds: string[],
+): Promise<number> {
+  const { data: existing, error } = await supabase
+    .from("posts")
+    .select("id, trello_card_id")
+    .eq("client_id", clientId);
+
+  if (error) throw new Error(`Falha ao ler posts do cliente: ${error.message}`);
+
+  const live = new Set(liveCardIds);
+  const staleIds = (existing ?? [])
+    .filter((post: { trello_card_id: string }) => !live.has(post.trello_card_id))
+    .map((post: { id: string }) => post.id);
+
+  if (staleIds.length === 0) return 0;
+
+  const { error: deleteError } = await supabase.from("posts").delete().in("id", staleIds);
+  if (deleteError) throw new Error(`Falha ao limpar posts órfãos: ${deleteError.message}`);
+
+  return staleIds.length;
+}
+
 // deno-lint-ignore no-explicit-any
 async function backfillPosts(
   supabase: any,
   clientId: string,
   boardFullId: string,
-): Promise<{ count: number; unmappedLists: string[] }> {
+): Promise<{ count: number; removedCount: number; unmappedLists: string[] }> {
   const [lists, labels, cardIds] = await Promise.all([
     getBoardLists(boardFullId),
     getBoardLabels(boardFullId),
@@ -297,11 +337,13 @@ async function backfillPosts(
     .filter((list) => mapListNameToStatus(list.name) === null)
     .map((list) => list.name);
 
-  if (cardIds.length === 0) return { count: 0, unmappedLists };
+  if (cardIds.length === 0) {
+    return { count: 0, removedCount: await removeStalePosts(supabase, clientId, []), unmappedLists };
+  }
 
   // Cada card é buscado individualmente (detalhes + anexos) — os campos
   // aninhados na listagem em lote do board não são confiáveis.
-  const rows = await mapWithConcurrency(cardIds, 3, async (cardId) => {
+  const allRows = await mapWithConcurrency(cardIds, 3, async (cardId) => {
     const [card, attachments] = await Promise.all([
       getCardDetails(cardId),
       getCardAttachments(cardId),
@@ -324,10 +366,25 @@ async function backfillPosts(
     };
   });
 
-  const { error } = await supabase.from("posts").upsert(rows, { onConflict: "trello_card_id" });
-  if (error) throw new Error(`Falha ao importar posts: ${error.message}`);
+  // `listNameById` só tem as listas abertas do board. Card sem lista
+  // correspondente está numa lista arquivada: ele não aparece mais no board,
+  // então também não deve aparecer no portal. (Arquivar a lista inteira não
+  // marca os cards dentro dela como arquivados, por isso eles passam pelo
+  // filtro `open` da listagem de cards.)
+  const rows = allRows.filter((row) => row.trello_list_name !== null);
 
-  return { count: rows.length, unmappedLists };
+  if (rows.length > 0) {
+    const { error } = await supabase.from("posts").upsert(rows, { onConflict: "trello_card_id" });
+    if (error) throw new Error(`Falha ao importar posts: ${error.message}`);
+  }
+
+  const removedCount = await removeStalePosts(
+    supabase,
+    clientId,
+    rows.map((row) => row.trello_card_id),
+  );
+
+  return { count: rows.length, removedCount, unmappedLists };
 }
 
 Deno.serve(async (req) => {
@@ -432,6 +489,7 @@ Deno.serve(async (req) => {
   }
 
   let importedCount = 0;
+  let removedCount = 0;
   let webhookWarning: string | null = null;
   let boardFullId: string | null = null;
   let unmappedLists: string[] = [];
@@ -440,6 +498,7 @@ Deno.serve(async (req) => {
     boardFullId = await getBoardFullId(shortLink);
     const result = await backfillPosts(supabase, client.id, boardFullId);
     importedCount = result.count;
+    removedCount = result.removedCount;
     unmappedLists = result.unmappedLists;
   } catch (backfillError) {
     console.error("Falha ao importar posts existentes:", backfillError);
@@ -460,5 +519,5 @@ Deno.serve(async (req) => {
     }
   }
 
-  return jsonResponse({ client, importedCount, webhookWarning, unmappedLists });
+  return jsonResponse({ client, importedCount, removedCount, webhookWarning, unmappedLists });
 });

@@ -32,6 +32,30 @@ function supabaseAdmin() {
   return createClient(url, serviceRoleKey, { auth: { persistSession: false } });
 }
 
+// Etapas em que já existe uma peça pronta pro cliente ver. Nas outras ele
+// enxerga só que o post existe e em que etapa está.
+const OPENABLE_STATUSES = new Set(["em_aprovacao", "em_agendamento", "publicado"]);
+
+interface PostRow {
+  id: string;
+  format: string | null;
+  caption: string | null;
+  media_type: string | null;
+  media_urls: string[];
+  scheduled_date: string | null;
+  status: string;
+}
+
+// Esconder o conteúdo só no frontend não basta: o JSON inteiro fica visível
+// pra quem abrir o inspetor do navegador. Cards de listas internas costumam
+// ter anotação da equipe na descrição (num board real havia até um card de
+// acessos com senha), então a legenda e a mídia só saem daqui quando o post
+// já está numa etapa que o cliente pode abrir.
+function stripInternalContent(post: PostRow): PostRow {
+  if (OPENABLE_STATUSES.has(post.status)) return post;
+  return { ...post, caption: null, media_type: null, media_urls: [] };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -82,6 +106,6 @@ Deno.serve(async (req) => {
 
   return jsonResponse({
     client: { name: client.name },
-    posts: posts ?? [],
+    posts: ((posts ?? []) as PostRow[]).map(stripInternalContent),
   });
 });
