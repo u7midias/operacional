@@ -205,7 +205,7 @@ function checkAdminSecret(secret: string | null): boolean {
   return !!expected && secret?.trim() === expected;
 }
 
-const COMBINING_DIACRITICS_RE = /[̀-ͯ]/g;
+const COMBINING_DIACRITICS_RE = /[\u0300-\u036f]/g;
 
 function normalize(value: string): string {
   return value.normalize("NFD").replace(COMBINING_DIACRITICS_RE, "").trim().toLowerCase();
@@ -252,6 +252,13 @@ function extractFormat(labelNames: string[]): PostFormat | null {
     if (match) return match;
   }
   return null;
+}
+
+// Nome cru da primeira etiqueta do card. É o que o cliente vê no chip quando a
+// etiqueta não é feed/story/reels — sem isso qualquer etiqueta nova criada
+// pela equipe virava um "Post" genérico no calendário.
+function extractLabelName(labelNames: string[]): string | null {
+  return labelNames.find((name) => name.trim().length > 0)?.trim() ?? null;
 }
 
 const DRIVE_LINK_RE = /https:\/\/(?:drive|docs)\.google\.com\S+/i;
@@ -358,6 +365,7 @@ async function backfillPosts(
       trello_list_id: card.idList,
       trello_list_name: listName,
       format: extractFormat(labelNames),
+      label_name: extractLabelName(labelNames),
       caption: card.desc ?? null,
       media_type: media?.mediaType ?? null,
       media_urls: media?.mediaUrls ?? [],

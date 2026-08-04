@@ -82,7 +82,7 @@ export function WeekCalendar({
                       <span
                         className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT_CLASS[post.status]}`}
                       />
-                      <FormatBadge format={post.format} />
+                      <FormatBadge post={post} />
                       <span className="ml-auto flex items-center gap-1.5">
                         <StatusBadge status={post.status} />
                         {openable && <span className="text-neutral-300">›</span>}

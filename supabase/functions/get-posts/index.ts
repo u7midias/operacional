@@ -39,6 +39,7 @@ const OPENABLE_STATUSES = new Set(["em_aprovacao", "em_agendamento", "publicado"
 interface PostRow {
   id: string;
   format: string | null;
+  label_name: string | null;
   caption: string | null;
   media_type: string | null;
   media_urls: string[];
@@ -94,7 +95,7 @@ Deno.serve(async (req) => {
   // não, o que o frontend controla.
   const { data: posts, error } = await supabase
     .from("posts")
-    .select("id, format, caption, media_type, media_urls, scheduled_date, status")
+    .select("id, format, label_name, caption, media_type, media_urls, scheduled_date, status")
     .eq("client_id", client.id)
     .not("scheduled_date", "is", null)
     .order("scheduled_date", { ascending: true });

@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  FORMAT_LABEL,
   STATUS_BADGE_CLASS,
   STATUS_LABEL,
   canOpenPost,
+  postLabel,
 } from "@/lib/statusLabels";
 import type { ClientPost } from "@/lib/types";
 
@@ -38,7 +38,7 @@ function PostChip({
   onSelect: (post: ClientPost) => void;
 }) {
   const openable = canOpenPost(post.status);
-  const label = post.format ? FORMAT_LABEL[post.format] : "Post";
+  const label = postLabel(post);
 
   // O chip ocupa a largura da célula e corta o texto por dentro: numa grade
   // de 7 colunas no celular a célula tem ~45px, e um badge de largura

@@ -49,6 +49,14 @@ export const FORMAT_LABEL: Record<string, string> = {
   reels: "Reels",
 };
 
+// Texto que aparece no chip do post. Feed/Story/Reels ganham o rótulo
+// caprichado; qualquer outra etiqueta do Trello aparece como a equipe
+// escreveu. "Post" é só o caso de card sem etiqueta nenhuma.
+export function postLabel(post: { format: string | null; label_name: string | null }): string {
+  if (post.format) return FORMAT_LABEL[post.format];
+  return post.label_name?.trim() || "Post";
+}
+
 // A cor no sistema significa uma coisa só: a etapa do post (STATUS_*). O
 // formato é informação secundária e aparece sempre em cinza, para não criar
 // uma segunda escala de cor competindo com a legenda.

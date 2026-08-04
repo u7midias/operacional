@@ -12,6 +12,9 @@ export type MediaType = "imagem" | "video";
 export interface ClientPost {
   id: string;
   format: PostFormat | null;
+  // Nome da etiqueta do Trello como ela foi escrita. Vale pra qualquer
+  // etiqueta que a equipe criar, não só feed/story/reels.
+  label_name: string | null;
   caption: string | null;
   media_type: MediaType | null;
   media_urls: string[];

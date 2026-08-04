@@ -1,14 +1,13 @@
-import { FORMAT_BADGE_CLASS, FORMAT_LABEL } from "@/lib/statusLabels";
-import type { PostFormat } from "@/lib/types";
+import { FORMAT_BADGE_CLASS, postLabel } from "@/lib/statusLabels";
+import type { ClientPost } from "@/lib/types";
 
-export function FormatBadge({ format }: { format: PostFormat | null }) {
-  const label = format ? FORMAT_LABEL[format] : "Post";
-
+export function FormatBadge({ post }: { post: ClientPost }) {
   return (
     <span
-      className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${FORMAT_BADGE_CLASS}`}
+      className={`inline-block max-w-[12rem] truncate rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${FORMAT_BADGE_CLASS}`}
+      title={postLabel(post)}
     >
-      {label}
+      {postLabel(post)}
     </span>
   );
 }

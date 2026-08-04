@@ -62,20 +62,25 @@ async function trelloFetch(path: string, init?: RequestInit, attempt = 1): Promi
 }
 
 async function getBoardLists(boardId: string): Promise<{ id: string; name: string }[]> {
-  const res = await trelloFetch(`/boards/${boardId}/lists?fields=name`);
+  const res = await trelloFetch(`/boards/${boardId}/lists?filter=open&fields=name`);
   return await res.json();
 }
 
 function normalize(value: string): string {
-  const COMBINING_DIACRITICS_RE = /[̀-ͯ]/g;
+  const COMBINING_DIACRITICS_RE = /[\u0300-\u036f]/g;
   return value.normalize("NFD").replace(COMBINING_DIACRITICS_RE, "").trim().toLowerCase();
 }
 
-async function findListIdByName(boardId: string, listName: string): Promise<string | null> {
+// A lista de destino é procurada por palavra-chave, não por nome exato. Os
+// boards reais não usam o nome canônico: o destino da aprovação pode se
+// chamar "AGENDAR", "Agendamento" ou "Agendar posts". Exigir o nome exato
+// fazia a lista não ser encontrada e o card simplesmente não sair do lugar.
+async function findTargetList(
+  boardId: string,
+  keyword: string,
+): Promise<{ id: string; name: string } | null> {
   const lists = await getBoardLists(boardId);
-  const normalizedTarget = normalize(listName);
-  const match = lists.find((list) => normalize(list.name) === normalizedTarget);
-  return match?.id ?? null;
+  return lists.find((list) => normalize(list.name).includes(keyword)) ?? null;
 }
 
 async function moveCardToList(cardId: string, listId: string): Promise<void> {
@@ -90,9 +95,11 @@ async function commentOnCard(cardId: string, text: string): Promise<void> {
   });
 }
 
-const TARGET_LIST_BY_ACTION = {
-  aprovado: "Agendamento",
-  alteracao_solicitada: "Alteração",
+// Palavra-chave que identifica a lista de destino no board do cliente. É a
+// mesma convenção usada em sync-trello pra mapear lista -> etapa.
+const TARGET_LIST_KEYWORD_BY_ACTION = {
+  aprovado: "agend",
+  alteracao_solicitada: "alterac",
 } as const;
 
 const NEW_STATUS_BY_ACTION = {
@@ -176,20 +183,22 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const targetListName = TARGET_LIST_BY_ACTION[action];
-    const listId = await findListIdByName(client.trello_board_id, targetListName);
+    const keyword = TARGET_LIST_KEYWORD_BY_ACTION[action];
+    const targetList = await findTargetList(client.trello_board_id, keyword);
 
-    if (listId) {
-      await moveCardToList(post.trello_card_id, listId);
+    if (targetList) {
+      await moveCardToList(post.trello_card_id, targetList.id);
+      // Grava o nome real da lista do board, não um nome canônico inventado
+      // aqui — é o mesmo valor que o webhook vai gravar no próximo evento.
       await supabase
         .from("posts")
-        .update({ trello_list_id: listId, trello_list_name: targetListName })
+        .update({ trello_list_id: targetList.id, trello_list_name: targetList.name })
         .eq("id", post.id);
     } else {
       await supabase.from("trello_sync_log").insert({
         trello_card_id: post.trello_card_id,
         event_type: "approve-post:list-not-found",
-        payload: { targetListName, board_id: client.trello_board_id },
+        payload: { keyword, board_id: client.trello_board_id },
       });
     }
 

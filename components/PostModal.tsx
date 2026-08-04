@@ -83,7 +83,7 @@ export function PostModal({
 
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <FormatBadge format={post.format} />
+            <FormatBadge post={post} />
             <StatusBadge status={post.status} />
           </div>
           <button
